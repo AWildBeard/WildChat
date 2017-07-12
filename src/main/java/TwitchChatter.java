@@ -15,7 +15,7 @@
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
@@ -25,26 +25,34 @@ import javafx.stage.Stage;
 
 public class TwitchChatter extends Application
 {
-
     // Containers
     private Stage primaryStage;
+
     private Scene root;
+
     /*
      * 2 rows. Top row is the menu bar. Bottom row is the
      * "base content"
      */
     private VBox baseNode = new VBox();
+
+    /*
+     * Hold the messageWriteView and userList
+     */
+    private HBox mainNode = new HBox();
+
     /*
      * Hold the message typing field and the message viewing field
      */
     private VBox messageWriteView = new VBox();
 
-    private AnchorPane anchorPane = new AnchorPane();
-
     // Content Holders
     private MenuBar menuBar = new MenuBar();
+
     private ScrollPane messageViewer = new ScrollPane();
+
     private TextField messageInputField = new TextField();
+
     private ListView<String> userList = new ListView<>();
 
     public void start(Stage primaryStage)
@@ -53,6 +61,7 @@ public class TwitchChatter extends Application
 
         initUI();
 
+        root = new Scene(baseNode, 600, 400);
         this.primaryStage.setScene(root);
         this.primaryStage.show();
     }
@@ -60,27 +69,21 @@ public class TwitchChatter extends Application
     private void initUI()
     {
         addChildren();
-        setAlignment();
+        setVisProps();
     }
 
     private void addChildren()
     {
-        baseNode.getChildren().addAll(menuBar, anchorPane);
-        anchorPane.getChildren().addAll(messageWriteView, userList);
-        messageWriteView.getChildren().addAll(messageViewer, messageInputField);
+        baseNode.getChildren().addAll(menuBar, mainNode);
         menuBar.getMenus().add(new Menu("PlaceHolder"));
-        AnchorPane.setTopAnchor(messageWriteView, 0.0);
-        AnchorPane.setLeftAnchor(messageWriteView, 0.0);
-        AnchorPane.setBottomAnchor(messageWriteView, 0.0);
-        AnchorPane.setBottomAnchor(userList, 5.0);
-        anchorPane.setStyle("-fx-background-color: green");
-
-        root = new Scene(baseNode, 600, 400);
+        mainNode.getChildren().addAll(messageWriteView, userList);
+        messageWriteView.getChildren().addAll(messageViewer, messageInputField);
     }
 
-    private void setAlignment()
+    private void setVisProps()
     {
-
+        messageViewer.setMinWidth(350);
+        messageViewer.setMinHeight(345);
+        userList.setMaxHeight(345);
     }
-
 }
