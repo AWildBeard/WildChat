@@ -5,53 +5,73 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class TwitchConnect implements Runnable
 {
-
-    // oauth:7592bdpxcsgjgyyrqmgi2k1xm22xo5
-
     private DataInputStream is;
 
     private DataOutputStream os;
 
-    private StringProperty data = new SimpleStringProperty("");
+    private StringProperty data = new SimpleStringProperty();
+
+    // Basically a first in first out array list that is also thread safe :D
+    private static LinkedBlockingQueue<String> messages = new LinkedBlockingQueue<>();
 
     private String tmpData;
 
-    private Client client;
+    private Socket socket;
+
+    private final Client client;
 
     public TwitchConnect(Client client)
     {
         this.client = client;
     }
 
+    private final Thread messageSender = new Thread(() ->
+    {
+        System.out.println("MessageSender running");
+        while (true)
+        {
+            try
+            {
+                Thread.sleep(333);
+            }
+            catch (InterruptedException y)
+            {
+                System.out.println(y.getMessage());
+            }
+
+            if (messages.size() < 1)
+                continue;
+
+            if (messages.peek() == null)
+                continue;
+
+            try
+            {
+                System.out.println("Sending: " + messages.peek());
+                os.write(messages.poll().getBytes());
+                os.flush();
+            }
+            catch (IOException y)
+            {
+                System.out.println(y.getMessage());
+            }
+        }
+    });
+
     public void run()
     {
         // Connect
-        try
-        {
-            Socket socket = new Socket(TwitchConnectionInfo.getHost(), TwitchConnectionInfo.getPort());
-            is = new DataInputStream(socket.getInputStream());
-            os = new DataOutputStream(socket.getOutputStream());
-        }
-        catch (IOException e)
-        {
-            System.out.println(e.getMessage());
-            System.out.println("Error connecting and/ or getting inputStream");
-        }
+        connect();
 
         // Login
-        try
-        {
-            os.write(("PASS oauth:" + client.getOauth() + "\n").getBytes());
-            os.write(("NICK " + client.getNick() + "\n").getBytes());
-        }
-        catch (IOException e)
-        {
-            System.out.println(e.getMessage());
-            System.out.println("Error logging into the twitch IRC service");
-        }
+        logIn();
+
+        // Start message Sender Thread
+        messageSender.start();
 
         while (true)
         {
@@ -59,20 +79,49 @@ public class TwitchConnect implements Runnable
 
             if (tmpData.substring(0, 4).equals("PING"))
             {
-                try
-                {
-                    os.write(("PONG" + tmpData.substring(5)).getBytes());
-                }
-                catch (IOException e)
-                {
-                    System.out.println(e.getMessage());
-                    System.out.println("Failed on keepAlive");
-                }
+                sendMessage("PONG " + tmpData.substring(5));
             }
             else
             {
                 data.setValue(tmpData);
             }
+        }
+    }
+
+    private void connect()
+    {
+        try
+        {
+            System.out.println("Attempting to start connection");
+            socket = new Socket(TwitchConnectionInfo.getHost(), TwitchConnectionInfo.getPort());
+            is = new DataInputStream(socket.getInputStream());
+            os = new DataOutputStream(socket.getOutputStream());
+            System.out.println("Connection started");
+        }
+        catch(IOException e)
+        {
+            System.out.println(e.getMessage());
+            System.out.println("Error connecting to twitch IRC service");
+        }
+    }
+
+    private void logIn()
+    {
+        System.out.println("Attempting to log in");
+        // None of this actually happens until the messageSender is started
+        sendMessage("PASS oauth:" + client.getOauth());
+        sendMessage("NICK " + client.getNick());
+    }
+
+    public synchronized void sendMessage(String command)
+    {
+        try
+        {
+            messages.put(command + "\r\n");
+        }
+        catch (InterruptedException e)
+        {
+            System.out.println(e.getMessage());
         }
     }
 
@@ -84,10 +133,5 @@ public class TwitchConnect implements Runnable
     public String getData()
     {
         return data.getValueSafe();
-    }
-
-    public DataOutputStream getOutputStream()
-    {
-        return os;
     }
 }

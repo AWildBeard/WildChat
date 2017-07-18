@@ -12,12 +12,13 @@
  * limitations under the License.
  */
 
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 public class TwitchChatter
 {
+    private static ArrayList<String> users = new ArrayList<>();
+
     public static void main(String[] args)
     {
         Scanner kb = new Scanner(System.in);
@@ -33,36 +34,99 @@ public class TwitchChatter
 
         socketRunner.getDataProperty().addListener(e ->
         {
-            System.out.println("Received>>> " + socketRunner.getData());
+            String data = socketRunner.getData();
+
+            System.out.println("ACTUAL: " + data);
+
+            boolean part = data.contains("PART"),
+                join = data.contains("JOIN"),
+                msg = data.contains("PRIVMSG");
+
+
+            // Not join, part, or message
+            if (! (part || join || msg))
+            {
+                String header;
+
+                int headerStart = 1;
+                int headerEnd = data.indexOf(':', headerStart); // Just past the first : looking for the last :
+
+                // No header
+                if (headerEnd == -1)
+                    return;
+
+                // Has a header
+                else
+                {
+                    // Get the header
+                    header = data.substring(headerStart, headerEnd);
+                    System.out.println(header);
+
+                    // List of users
+                    if (header.contains("353"))
+                    {
+                        String userBlob = data.substring(headerEnd + 1);
+                        System.out.println("BLOB " + userBlob);
+                        char[] usersBlob = userBlob.toCharArray();
+                        StringBuilder sb = new StringBuilder();
+
+                        int start = 0;
+                        for (int count = 0 ; count <= usersBlob.length - 1 ; count++)
+                        {
+                            if (usersBlob[count] == 32 || usersBlob[count] == '\r')
+                            {
+                                for (; start < count ; start++)
+                                {
+                                    sb.append(usersBlob[start]);
+                                }
+                                users.add(sb.toString());
+                            }
+                        }
+
+                        System.out.print("> Users: ");
+
+                        for (String user : users)
+                            System.out.print(user);
+
+                        System.out.print("\n");
+                    }
+                    else
+                        return;
+                }
+
+            }
+
+            int channelStart = (data.indexOf('#') + 1);
+            int nameSeperator = (data.indexOf('!'));
+            String channel = data.substring(channelStart);
+
+            // Exactly part, join, or msg
+            if (part || join || msg)
+            {
+                String username = data.substring(1, nameSeperator);
+
+                if (part)
+                    System.out.println("> " + username + " left channel: " + channel);
+
+                if (join)
+                    System.out.println("> " + username + " joined channel: " + channel);
+
+                if (msg)
+                {
+                    int messageStart = (data.indexOf(':', nameSeperator));
+                    String message = data.substring(messageStart + 1);
+
+                    System.out.println("> " + username + ": " + message);
+                }
+            }
         });
 
-        System.out.println("Attempting to start connection...");
         th.start();
-
-        DataOutputStream os = null;
-        boolean initialized = false;
-        String command;
 
         while (true)
         {
-            command = kb.nextLine();
-            if (!initialized)
-            {
-                os = socketRunner.getOutputStream();
-                initialized = true;
-            }
-
-            try
-            {
-                os.write(command.getBytes());
-            }
-            catch (IOException e)
-            {
-                System.out.println(e.getMessage());
-                System.out.println("Failed to send command: " + command);
-            }
-
+            String command = kb.nextLine();
+            socketRunner.sendMessage(command);
         }
-
     }
 }
