@@ -12,78 +12,57 @@
  * limitations under the License.
  */
 
-import javafx.application.Application;
-import javafx.scene.Scene;
-import javafx.scene.control.*;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
-import javafx.stage.Stage;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.Scanner;
 
-/*
- * Description: Main GUI for TwitchChatter
- */
-
-public class TwitchChatter extends Application
+public class TwitchChatter
 {
-    // Containers
-    private Stage primaryStage;
-
-    private Scene root;
-
-    /*
-     * 2 rows. Top row is the menu bar. Bottom row is the
-     * "base content"
-     */
-    private VBox baseNode = new VBox();
-
-    /*
-     * Hold the messageWriteView and userList
-     */
-    private HBox mainNode = new HBox();
-
-    /*
-     * Hold the message typing field and the message viewing field
-     */
-    private VBox messageWriteView = new VBox();
-
-    // Content Holders
-    private MenuBar menuBar = new MenuBar();
-
-    private ScrollPane messageViewer = new ScrollPane();
-
-    private TextField messageInputField = new TextField();
-
-    private ListView<String> userList = new ListView<>();
-
-    public void start(Stage primaryStage)
+    public static void main(String[] args)
     {
-        this.primaryStage = primaryStage;
+        Scanner kb = new Scanner(System.in);
+        String nick, oauth;
 
-        initUI();
+        System.out.print("Please enter your username: ");
+        nick = kb.next();
+        System.out.print("Please enter your OAUTH key: ");
+        oauth = kb.next();
 
-        root = new Scene(baseNode, 600, 400);
-        this.primaryStage.setScene(root);
-        this.primaryStage.show();
-    }
+        TwitchConnect socketRunner = new TwitchConnect(new Client(oauth, nick));
+        Thread th = new Thread(socketRunner);
 
-    private void initUI()
-    {
-        addChildren();
-        setVisProps();
-    }
+        socketRunner.getDataProperty().addListener(e ->
+        {
+            System.out.println("Received>>> " + socketRunner.getData());
+        });
 
-    private void addChildren()
-    {
-        baseNode.getChildren().addAll(menuBar, mainNode);
-        menuBar.getMenus().add(new Menu("PlaceHolder"));
-        mainNode.getChildren().addAll(messageWriteView, userList);
-        messageWriteView.getChildren().addAll(messageViewer, messageInputField);
-    }
+        System.out.println("Attempting to start connection...");
+        th.start();
 
-    private void setVisProps()
-    {
-        messageViewer.setMinWidth(350);
-        messageViewer.setMinHeight(345);
-        userList.setMaxHeight(345);
+        DataOutputStream os = null;
+        boolean initialized = false;
+        String command;
+
+        while (true)
+        {
+            command = kb.nextLine();
+            if (!initialized)
+            {
+                os = socketRunner.getOutputStream();
+                initialized = true;
+            }
+
+            try
+            {
+                os.write(command.getBytes());
+            }
+            catch (IOException e)
+            {
+                System.out.println(e.getMessage());
+                System.out.println("Failed to send command: " + command);
+            }
+
+        }
+
     }
 }

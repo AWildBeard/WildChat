@@ -29,3 +29,9 @@ dependencies {
 
 // Define the main class for the application
 mainClassName = 'TwitchChatter'
+
+jar {
+    manifest {
+	    attributes 'Main-Class' : 'TwitchChatter'
+    }
+}
