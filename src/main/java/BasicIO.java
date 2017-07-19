@@ -36,7 +36,8 @@ public class BasicIO
             // of the char array by 1
             while (! isEOLChar((chars[index++] = (char) stream.read())))
                 chars = Arrays.copyOf(chars, index + 1);
-        } catch (IOException e)
+        }
+        catch (IOException e)
         {
             e.printStackTrace(System.out);
             System.out.println(e.getMessage());
@@ -63,7 +64,8 @@ public class BasicIO
                 buffer.append(chars, 0, readLength);
 
             reader.close();
-        } catch (IOException e)
+        }
+        catch (IOException e)
         {
             System.out.println(e.getMessage());
         }

@@ -1,3 +1,4 @@
+// Data holder for the user of the program
 public class Client
 {
     private String oauth, nick;

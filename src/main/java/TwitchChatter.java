@@ -46,6 +46,7 @@ public class TwitchChatter
             // Not join, part, or message
             if (! (part || join || msg))
             {
+                // Analyze the header of the message
                 String header;
 
                 int headerStart = 1;
@@ -60,14 +61,13 @@ public class TwitchChatter
                 {
                     // Get the header
                     header = data.substring(headerStart, headerEnd);
-                    System.out.println(header);
 
                     // List of users
-                    if (header.contains("353"))
+                    if (header.contains("353")) // Twitch code 353. Lists the users in the channel
+                    // Not really sure if this is useful. As testing shows that the IRC will only
+                    // list the client joining, not the other users on the IRC.
                     {
-                        String userBlob = data.substring(headerEnd + 1);
-                        System.out.println("BLOB " + userBlob);
-                        char[] usersBlob = userBlob.toCharArray();
+                        char[] usersBlob = data.substring(headerEnd + 1).toCharArray();
                         StringBuilder sb = new StringBuilder();
 
                         int start = 0;
@@ -75,10 +75,10 @@ public class TwitchChatter
                         {
                             if (usersBlob[count] == 32 || usersBlob[count] == '\r')
                             {
+                                start++; // Skip the space between users
                                 for (; start < count ; start++)
-                                {
                                     sb.append(usersBlob[start]);
-                                }
+
                                 users.add(sb.toString());
                             }
                         }
@@ -96,8 +96,13 @@ public class TwitchChatter
 
             }
 
+            // The exact index where the first channel name letter is
             int channelStart = (data.indexOf('#') + 1);
+
+            // The exact endex of the userName end delimeter
             int nameSeperator = (data.indexOf('!'));
+
+            // Get the name of the channel
             String channel = data.substring(channelStart);
 
             // Exactly part, join, or msg

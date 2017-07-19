@@ -13,15 +13,20 @@ public class TwitchConnect implements Runnable
 
     private DataOutputStream os;
 
+    // Data to hold the 'Data' from the Twitch IRC. Is implemented as a StringProperty so other threads can listen
+    // for changes to the data so they know when to grab it.
     private StringProperty data = new SimpleStringProperty();
 
     // Basically a first in first out array list that is also thread safe :D
     private static LinkedBlockingQueue<String> messages = new LinkedBlockingQueue<>();
 
+    // Holds the direct contact from the Twitch IRC. Done this so we can test what Twitch has sent us instead
+    // of triggering the StringProperty and then testing.
     private String tmpData;
 
     private Socket socket;
 
+    // The client using the program. Contains the user name and OAUTH token.
     private final Client client;
 
     public TwitchConnect(Client client)
@@ -36,6 +41,7 @@ public class TwitchConnect implements Runnable
         {
             try
             {
+                // Don't spam twitch. It doesn't like it.
                 Thread.sleep(333);
             }
             catch (InterruptedException y)
@@ -70,11 +76,15 @@ public class TwitchConnect implements Runnable
         // Login
         logIn();
 
+        // Enable TwitchAPI options
+        twitchAPIOps();
+
         // Start message Sender Thread
         messageSender.start();
 
         while (true)
         {
+            // Don't add the received data directly to the StringProperty. Check it for relevance before adding.
             tmpData = String.valueOf(BasicIO.readLine(is));
 
             if (tmpData.substring(0, 4).equals("PING"))
@@ -113,6 +123,15 @@ public class TwitchConnect implements Runnable
         sendMessage("NICK " + client.getNick());
     }
 
+    private void twitchAPIOps()
+    {
+        // None of this actually happens until the messenger services is started
+        sendMessage("CAP REQ :twitch.tv/membership");
+        sendMessage("CAP REQ :twitch.tv/tags");
+        sendMessage("CAP REQ :twitch.tv/commands");
+    }
+
+    // Send a message to the Twitch IRC
     public synchronized void sendMessage(String command)
     {
         try
@@ -125,11 +144,13 @@ public class TwitchConnect implements Runnable
         }
     }
 
+    // Get the data property so we can listen for changes.
     public StringProperty getDataProperty()
     {
         return data;
     }
 
+    // Get the current data from Twitch IRC stored in this class. Safely.
     public String getData()
     {
         return data.getValueSafe();
