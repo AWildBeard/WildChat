@@ -17,7 +17,7 @@ import java.util.Scanner;
 
 public class TwitchChatter
 {
-    private static ArrayList<String> users = new ArrayList<>();
+    private static ArrayList<RemoteClient> users = new ArrayList<>();
 
     public static void main(String[] args)
     {
@@ -42,86 +42,115 @@ public class TwitchChatter
                 join = data.contains("JOIN"),
                 msg = data.contains("PRIVMSG");
 
-
-            // Not join, part, or message
-            if (! (part || join || msg))
-            {
-                // Analyze the header of the message
-                String header;
-
-                int headerStart = 1;
-                int headerEnd = data.indexOf(':', headerStart); // Just past the first : looking for the last :
-
-                // No header
-                if (headerEnd == -1)
-                    return;
-
-                // Has a header
-                else
-                {
-                    // Get the header
-                    header = data.substring(headerStart, headerEnd);
-
-                    // List of users
-                    if (header.contains("353")) // Twitch code 353. Lists the users in the channel
-                    // Not really sure if this is useful. As testing shows that the IRC will only
-                    // list the client joining, not the other users on the IRC.
-                    {
-                        char[] usersBlob = data.substring(headerEnd + 1).toCharArray();
-                        StringBuilder sb = new StringBuilder();
-
-                        int start = 0;
-                        for (int count = 0 ; count <= usersBlob.length - 1 ; count++)
-                        {
-                            if (usersBlob[count] == 32 || usersBlob[count] == '\r')
-                            {
-                                start++; // Skip the space between users
-                                for (; start < count ; start++)
-                                    sb.append(usersBlob[start]);
-
-                                users.add(sb.toString());
-                            }
-                        }
-
-                        System.out.print("> Users: ");
-
-                        for (String user : users)
-                            System.out.print(user);
-
-                        System.out.print("\n");
-                    }
-                    else
-                        return;
-                }
-
-            }
-
-            // The exact index where the first channel name letter is
-            int channelStart = (data.indexOf('#') + 1);
-
-            // The exact endex of the userName end delimeter
-            int nameSeperator = (data.indexOf('!'));
-
-            // Get the name of the channel
-            String channel = data.substring(channelStart);
+            // The exact index of the userName end delimeter
+            int nameStart = (data.indexOf(':'));
+            int nameSeperator = (data.indexOf('!', nameStart));
 
             // Exactly part, join, or msg
             if (part || join || msg)
             {
-                String username = data.substring(1, nameSeperator);
+                String username = data.substring(nameStart + 1, nameSeperator);
 
                 if (part)
-                    System.out.println("> " + username + " left channel: " + channel);
+                    System.out.println("> " + username + " left the channel");
 
                 if (join)
-                    System.out.println("> " + username + " joined channel: " + channel);
+                    System.out.println("> " + username + " joined the channel");
 
                 if (msg)
                 {
+                    boolean knownUser = false;
+
+                    // Find the user in our array
+                    for (RemoteClient rClient : users)
+                        if (username.equals(rClient.getUserName()))
+                            knownUser = true;
+
+                    if (! knownUser)
+                    {
+                        // Required fields
+                        ArrayList<String> badges = new ArrayList<>();
+                        ArrayList<Integer> badgeVers = new ArrayList<>();
+                        String color = "NOCOLOR";
+                        // Already know username
+                        // TODO: implement
+                        boolean mod, subscriber, turbo;
+                        String userType;
+                        String userID;
+
+                        // Utility variables
+                        StringBuilder sb = new StringBuilder();
+                        int endOfValueLocation = data.indexOf(';');
+                        char[] rawData = data.toCharArray();
+
+                        // Badges
+                        int badgesStart = 8; // Always 8 because all PRIVMSG start with @badges
+                        for (int count = badgesStart; count <= endOfValueLocation; count++)
+                        {
+                            // End of badges
+                            if (count == endOfValueLocation)
+                                break;
+
+                            // Found badge name end and beginning of badge version
+                            if (rawData[count] == '/')
+                            {
+                                // End of badge name found
+                                badges.add(sb.toString());
+                                badgeVers.add(Integer.parseInt(String.valueOf(rawData[++count])));
+                                // Skip over the ,
+                                count++;
+                            }
+
+                            else
+                                sb.append(rawData[count]);
+                        }
+
+                        // Color
+                        // Reset the stringBuilder
+                        sb = new StringBuilder();
+
+                        //                                ;color=
+                        int colorStart = endOfValueLocation + 7;
+                        endOfValueLocation = data.indexOf(';', colorStart - 1);
+
+                        for (int count = colorStart ; count <= endOfValueLocation ; count++)
+                        {
+                            if (count == endOfValueLocation)
+                                if (sb.length() <= 6)
+                                {
+                                    color = "NOCOLOR";
+                                    break;
+                                }
+                                else
+                                {
+                                    color = sb.toString();
+                                    break;
+                                }
+
+                            else
+                                sb.append(rawData[count]);
+                        }
+
+                        users.add(new RemoteClient(badges, badgeVers, color, username));
+                    }
+
+                    // Get the client;
+                    RemoteClient rClient = null;
+
+                    for (RemoteClient remoteClient : users)
+                        if (remoteClient.getUserName().equals(username))
+                            rClient = remoteClient;
+
                     int messageStart = (data.indexOf(':', nameSeperator));
                     String message = data.substring(messageStart + 1);
 
-                    System.out.println("> " + username + ": " + message);
+                    System.out.print("> ");
+
+                    for (String badge : rClient.getBadges())
+                        System.out.print(badge + " ");
+
+                    System.out.println(username + ": " + message);
+                    // END TODO
                 }
             }
         });

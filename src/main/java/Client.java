@@ -12,7 +12,7 @@ public class Client
     public void setOauth(String oauth)
     {
         // Check for malformed oauth:
-        if (oauth.substring(0, 5).equals("oauth:"))
+        if (oauth.substring(0, 6).equals("oauth:"))
             oauth = oauth.substring(6);
 
         //  Must be a length of 30
