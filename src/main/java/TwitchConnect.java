@@ -13,8 +13,11 @@ public class TwitchConnect implements Runnable
 
     private DataOutputStream os;
 
-    // Data to hold the 'Data' from the Twitch IRC. Is implemented as a StringProperty so other threads can listen
-    // for changes to the data so they know when to grab it.
+    /* Data to hold the 'Data' from the Twitch IRC. Is implemented as a StringProperty so other threads can listen
+     * for changes to the data so they know when to grab it. Normally this would be a problem if the same message is
+     * received twice from twitch. But twitch PROHIBITS sending the same message twice in a row in within 30 seconds
+     * so this is not really a problem. It also works really really well as it IS thread safe.
+     */
     private StringProperty data = new SimpleStringProperty();
 
     // Basically a first in first out array list that is also thread safe :D
