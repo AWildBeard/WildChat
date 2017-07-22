@@ -32,6 +32,6 @@ mainClassName = 'TwitchChatter'
 
 jar {
     manifest {
-	    attributes 'Main-Class' : 'TwitchChatter'
+	    attributes 'Main-Class' : 'WildChat'
     }
 }
