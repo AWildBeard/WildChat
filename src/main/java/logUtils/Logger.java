@@ -1,17 +1,14 @@
 package logUtils;
 
-import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 
 public class Logger
 {
     private static boolean shouldLog = false;
 
-    private static SimpleDateFormat time = new SimpleDateFormat("h:mm:ss");
-
     private Logger() {}
 
-    public static void log(String message)
+    public static synchronized void log(String message)
     {
         if (shouldLog)
             System.out.println(getTime() + " " + message);

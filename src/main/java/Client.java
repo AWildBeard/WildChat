@@ -12,7 +12,7 @@ public class Client
     public void setOauth(String oauth)
     {
         //  Must be a length of 30
-        if (oauth.length() < 30)
+        if ((oauth = oauth.trim()).length() < 30)
             throw new IllegalOauthKey("OAUTH token is the wrong length. Need: 30 Received: " + oauth.length());
 
         // Check for malformed oauth:
@@ -24,7 +24,7 @@ public class Client
 
     public void setNick(String nick)
     {
-        this.nick = nick.toLowerCase();
+        this.nick = nick.toLowerCase().trim();
     }
 
     public String getNick() { return this.nick; }

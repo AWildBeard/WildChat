@@ -7,13 +7,15 @@ import java.io.IOException;
 import java.net.Socket;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import static logUtils.Logger.*;
+
 public class TwitchConnect implements Runnable
 {
     private DataInputStream is;
 
     private DataOutputStream os;
 
-    /* Data to hold the 'Data' from the Twitch IRC. Is implemented as a StringProperty so other threads can listen
+    /* Data to hold the 'Data' from the Twitch IRC. Is implemented as a StringProperty so other classes can listen
      * for changes to the data so they know when to grab it. Normally this would be a problem if the same message is
      * received twice from twitch. But twitch PROHIBITS sending the same message twice in a row in within 30 seconds
      * so this is not really a problem. It also works really really well as it IS thread safe.
@@ -39,8 +41,8 @@ public class TwitchConnect implements Runnable
 
     private final Thread messageSender = new Thread(() ->
     {
-        System.out.println("MessageSender running");
-        while (true)
+        log("messageSender running");
+        while (WildChat.connected)
         {
             try
             {
@@ -60,7 +62,7 @@ public class TwitchConnect implements Runnable
 
             try
             {
-                System.out.println("Sending: " + messages.peek());
+                log("messageSender sending: " + messages.peek());
                 os.write(messages.poll().getBytes());
                 os.flush();
             }
@@ -73,6 +75,7 @@ public class TwitchConnect implements Runnable
 
     public void run()
     {
+        log("Starting messageReceiver service");
         // Connect
         connect();
 
@@ -83,9 +86,11 @@ public class TwitchConnect implements Runnable
         twitchAPIOps();
 
         // Start message Sender Thread
+        log("Starting messageSender service");
         messageSender.start();
 
-        while (true)
+        log("messageReceiver service running");
+        while (WildChat.connected)
         {
             // Don't add the received data directly to the StringProperty. Check it for relevance before adding.
             tmpData = String.valueOf(BasicIO.readLine(is));
@@ -105,22 +110,24 @@ public class TwitchConnect implements Runnable
     {
         try
         {
-            System.out.println("Attempting to start connection");
+            log("Connecting to twitch IRC services");
             socket = new Socket(TwitchConnectionInfo.getHost(), TwitchConnectionInfo.getPort());
+            WildChat.connected = true;
             is = new DataInputStream(socket.getInputStream());
             os = new DataOutputStream(socket.getOutputStream());
-            System.out.println("Connection started");
+            log("Connection started");
         }
         catch(IOException e)
         {
-            System.out.println(e.getMessage());
-            System.out.println("Error connecting to twitch IRC service");
+            WildChat.connected = false;
+            log(e.getMessage());
+            log("Failed to connect to twitch IRC services");
         }
     }
 
     private void logIn()
     {
-        System.out.println("Attempting to log in");
+        log("Sending client credentials");
         // None of this actually happens until the messageSender is started
         sendMessage("PASS oauth:" + client.getOauth());
         sendMessage("NICK " + client.getNick());
@@ -128,6 +135,7 @@ public class TwitchConnect implements Runnable
 
     private void twitchAPIOps()
     {
+        log("Requesting advanced operations from twitch IRC");
         // None of this actually happens until the messenger services is started
         sendMessage("CAP REQ :twitch.tv/membership");
         sendMessage("CAP REQ :twitch.tv/tags");

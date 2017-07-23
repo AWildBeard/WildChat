@@ -14,8 +14,6 @@
 
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
 import javafx.geometry.HPos;
 import javafx.geometry.Pos;
 import javafx.geometry.VPos;
@@ -37,22 +35,49 @@ public class WildChat extends Application
 {
     private static String[] launchArgs;
 
+    private Stage primaryStage = null;
+
     private TwitchConnect socketRunner = null;
 
     private Thread th;
-
-    private boolean credentialError = false,
-            credentialsAvailable = false,
-            debug = true,
-            connected = false;
 
     private Client client = null;
 
     private Session session = new Session();
 
-    private Stage primaryStage = null;
+    private GridPane mainContent = new GridPane();
+
+    private MenuBar menuBar  = new MenuBar();
+
+    private Menu connections = new Menu("Connections"),
+            settings = new Menu("Settings");
+
+    private MenuItem connect = new MenuItem("Connect"),
+            disconnect = new MenuItem("Disconnect");
+
+    private ScrollPane messagePane = new ScrollPane();
+
+    private VBox messageHolder = new VBox();
+
+    private ListView<String> userList = new ListView<>();
+
+    private TextField messageField = new TextField();
+
+    private ColumnConstraints column1Constraints = new ColumnConstraints(),
+            column2Constraints = new ColumnConstraints();
+
+    private RowConstraints row1Constraints = new RowConstraints(),
+            row2Constraints = new RowConstraints(),
+            row3Constraints = new RowConstraints();
 
     private static int messageCount = 0;
+
+    private boolean credentialError = false,
+        credentialsAvailable = false,
+        debug = true,
+        connectedToChannel = false;
+
+    public static volatile boolean connected = false;
 
     public WildChat()
     {
@@ -90,6 +115,15 @@ public class WildChat extends Application
         log((credentialsAvailable) ? "Credentials read in" : "No credential data found");
     }
 
+    @Override
+    public void stop()
+    {
+        connected = false;
+        log("ShutDown");
+        System.exit(0);
+    }
+
+    @Override
     public void start(Stage primaryStage)
     {
         this.primaryStage = primaryStage;
@@ -111,24 +145,6 @@ public class WildChat extends Application
         socketRunner = new TwitchConnect(client);
         th = new Thread(socketRunner);
 
-        GridPane mainContent = new GridPane();
-
-        MenuBar menuBar = new MenuBar();
-        Menu connections = new Menu("Connections"),
-            settings = new Menu("Settings");
-        MenuItem connect = new MenuItem("Connect"),
-            disconnect = new MenuItem("Disconnect");
-        ScrollPane messagePane = new ScrollPane();
-        VBox messageHolder = new VBox();
-        AnchorPane messageAnchor = new AnchorPane();
-        ListView<String> userList = new ListView<>();
-        TextField messageField = new TextField();
-        ColumnConstraints column1Constraints = new ColumnConstraints(),
-            column2Constraints = new ColumnConstraints();
-        RowConstraints row1Constraints = new RowConstraints(),
-            row2Constraints = new RowConstraints(),
-            row3Constraints = new RowConstraints();
-
         messagePane.setPannable(false);
         connections.getItems().addAll(connect, disconnect);
         menuBar.getMenus().addAll(connections, settings);
@@ -144,8 +160,6 @@ public class WildChat extends Application
         messagePane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         messagePane.setFitToWidth(true);
         messagePane.vvalueProperty().bind(messageHolder.heightProperty());
-        messageAnchor.getChildren().add(messageHolder);
-        AnchorPane.setBottomAnchor(messageHolder, 0.0);
         column1Constraints.setHgrow(Priority.ALWAYS);
         column1Constraints.setHalignment(HPos.LEFT);
         column1Constraints.setFillWidth(true);
@@ -172,9 +186,13 @@ public class WildChat extends Application
 
         Scene root = new Scene(mainContent, 650, 400);
 
-        settings.setOnAction(e ->
+        disconnect.setOnAction(e ->
         {
-
+            if (connectedToChannel)
+            {
+                log("Disconnecting from " + session.getChannel());
+                sendMessage("PART " + session.getChannel());
+            }
         });
 
         connect.setOnAction(e ->
@@ -200,7 +218,6 @@ public class WildChat extends Application
             String data = socketRunner.getData();
 
             log(data);
-            log("");
 
             StringBuilder finalMessage = new StringBuilder();
 
@@ -213,7 +230,6 @@ public class WildChat extends Application
             {
                 log("Connected to twitch.tv");
                 finalMessage.append("> Connected to twitch.tv");
-                connected = true;
             }
 
             if (msg)
@@ -298,7 +314,7 @@ public class WildChat extends Application
                 // END TODO
             }
 
-            if (part || join)
+            if ((part || join) && ! msg)
             {
                 int nameStart = (data.indexOf(':'));
                 int endOfNameLocation = (data.indexOf('!', nameStart));
@@ -319,8 +335,7 @@ public class WildChat extends Application
 
             Platform.runLater(() ->
             {
-                messageHolder.getChildren().add(messageCount, new Text(finalMessage.toString()));
-                messageCount++;
+                displayMessage(finalMessage.toString());
             });
         });
 
@@ -355,20 +370,21 @@ public class WildChat extends Application
         {
             String channel = streamerField.getText();
 
-            if (connected)
-                sendMessage("PART" + session.getChannel());
+            if (connectedToChannel)
+            {
+                log("Disconnecting from channel " + session.getChannel());
+                sendMessage("PART " + session.getChannel());
+            }
 
-            if (channel.substring(0, 1).contains("#"))
-            {
-                sendMessage("JOIN " + channel);
-            }
-            else
-            {
+            if (! channel.substring(0, 1).contains("#"))
                 channel = "#" + channel;
-                sendMessage("JOIN " + channel);
-            }
+
+            log("Connecting to channel " + channel);
+            sendMessage("JOIN " + channel);
 
             session.setChannel(channel);
+            connectedToChannel = true;
+            secondaryStage.close();
         });
 
         Scene root = new Scene(contentHolder, 400, 300);
@@ -379,8 +395,9 @@ public class WildChat extends Application
 
     }
 
-    public void showCredentialError()
+    private void showCredentialError()
     {
+        Stage secondaryStage = new Stage();
         log("Opening credential error window");
         VBox content = new VBox();
         Text message = new Text("Error with credential file. Contact @AWildBeard");
@@ -398,12 +415,13 @@ public class WildChat extends Application
 
         Scene root = new Scene(content, 400, 300);
 
-        primaryStage.setScene(root);
-        primaryStage.show();
+        secondaryStage.setScene(root);
+        secondaryStage.setTitle("Credential error");
+        secondaryStage.show();
     }
 
     // TODO: Implement
-    public void askForCredentials()
+    private void askForCredentials()
     {
         Stage secondaryStage = new Stage();
         VBox contentHolder = new VBox();
@@ -460,7 +478,13 @@ public class WildChat extends Application
     }
     // END TODO
 
-    public void sendMessage(String message) { socketRunner.sendMessage(message); }
+    private void sendMessage(String message) { socketRunner.sendMessage(message.trim()); }
+
+    private void displayMessage(String message)
+    {
+        messageHolder.getChildren().add(messageCount, new Text(message.trim()));
+        messageCount++;
+    }
 
     public static void main(String[] args)
     {
