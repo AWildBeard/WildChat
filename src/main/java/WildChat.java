@@ -20,6 +20,7 @@ import javafx.geometry.VPos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.*;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
@@ -75,7 +76,8 @@ public class WildChat extends Application
     private boolean credentialError = false,
         credentialsAvailable = false,
         debug = true,
-        connectedToChannel = false;
+        connectedToChannel = false,
+        ctrlKeyPressed = false;
 
     public static volatile boolean connected = false;
 
@@ -153,7 +155,8 @@ public class WildChat extends Application
         userList.setMaxWidth(250.0);
         userList.setPrefWidth(175.0);
         userList.setMinWidth(100.0);
-        messageHolder.setAlignment(Pos.BOTTOM_LEFT);
+        messageHolder.setFillWidth(true);
+        messageHolder.setSpacing(3.0);
         messagePane.setPrefWidth(450.0);
         messagePane.setMinWidth(200.0);
         messagePane.setMaxWidth(Double.MAX_VALUE);
@@ -205,10 +208,14 @@ public class WildChat extends Application
             String message = messageField.getText();
             if (event.getCode().equals(KeyCode.ENTER))
             {
-                if (message.length() > 0)
+                if (connectedToChannel)
                 {
-                    socketRunner.sendMessage("PRIVMSG " + session.getChannel() + " :" + message);
-                    messageField.setText("");
+                    if (message.length() > 0)
+                    {
+                        sendMessage("PRIVMSG " + session.getChannel() + " :" + message);
+                        messageField.clear();
+                        displayMessage("> " + client.getNick() + ": " + message);
+                    }
                 }
             }
         });
@@ -232,7 +239,7 @@ public class WildChat extends Application
                 finalMessage.append("> Connected to twitch.tv");
             }
 
-            if (msg)
+            else if (msg)
             {
                 log("Message received");
                 StringBuilder sb = new StringBuilder();
@@ -310,11 +317,14 @@ public class WildChat extends Application
                 categoryStart = (data.indexOf(':', data.indexOf("PRIVMSG")));
                 String message = data.substring(categoryStart + 1);
 
+                // Remove EOL chars.
+                message = message.substring(0, message.length() - 1);
+
                 finalMessage.append(username + ": " + message);
                 // END TODO
             }
 
-            if ((part || join) && ! msg)
+            else if ((part || join) && ! msg)
             {
                 int nameStart = (data.indexOf(':'));
                 int endOfNameLocation = (data.indexOf('!', nameStart));
@@ -333,10 +343,13 @@ public class WildChat extends Application
                 }
             }
 
-            Platform.runLater(() ->
+            if (part || join || msg || connection)
             {
-                displayMessage(finalMessage.toString());
-            });
+                Platform.runLater(() ->
+                {
+                    displayMessage(finalMessage.toString());
+                });
+            }
         });
 
         this.primaryStage.setScene(root);
@@ -346,6 +359,9 @@ public class WildChat extends Application
             log("Primary Stage Close");
         });
         this.primaryStage.show();
+
+        // CTRL+Q exit application
+        this.primaryStage.getScene().getAccelerators().put(KeyCombination.keyCombination("CTRL+Q"),() -> stop());
 
         th.start();
     }
@@ -385,6 +401,12 @@ public class WildChat extends Application
             session.setChannel(channel);
             connectedToChannel = true;
             secondaryStage.close();
+        });
+
+        streamerField.setOnKeyPressed(event ->
+        {
+            if (event.getCode().equals(KeyCode.ENTER))
+                confirmButton.fire();
         });
 
         Scene root = new Scene(contentHolder, 400, 300);
@@ -462,6 +484,12 @@ public class WildChat extends Application
             }
         });
 
+        oauthTextField.setOnKeyPressed(e ->
+        {
+            if (e.getCode().equals(KeyCode.ENTER))
+                confirmButton.fire();
+        });
+
         Scene root = new Scene(contentHolder, 400, 300);
         secondaryStage.setScene(root);
         secondaryStage.setTitle("Enter credentials");
@@ -482,6 +510,7 @@ public class WildChat extends Application
 
     private void displayMessage(String message)
     {
+        log("Displaying message: " + message);
         messageHolder.getChildren().add(messageCount, new Text(message.trim()));
         messageCount++;
     }
