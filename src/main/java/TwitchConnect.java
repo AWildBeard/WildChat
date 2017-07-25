@@ -47,7 +47,7 @@ public class TwitchConnect implements Runnable
             try
             {
                 // Don't spam twitch. It doesn't like it.
-                Thread.sleep(666);
+                Thread.sleep(777);
             }
             catch (InterruptedException y)
             {
