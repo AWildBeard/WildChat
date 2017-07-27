@@ -15,9 +15,11 @@ public class FileUtil
             return true;
 
         else
-            if (! file.getParentFile().mkdirs())
-                if (! createNewFile(file))
-                    return false;
+        {
+            file.getParentFile().mkdirs();
+            if (! createNewFile(file))
+                return false;
+        }
 
         return true;
     }

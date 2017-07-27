@@ -34,6 +34,8 @@ public class TwitchConnect implements Runnable
     // The client using the program. Contains the user name and OAUTH token.
     private final Client client;
 
+    private boolean acceptingMessages = true;
+
     public TwitchConnect(Client client)
     {
         this.client = client;
@@ -99,6 +101,12 @@ public class TwitchConnect implements Runnable
             {
                 sendMessage("PONG " + tmpData.substring(5));
             }
+            else if (tmpData.equals(":tmi.twitch.tv NOTICE * :Login authentication failed"))
+            {
+                acceptingMessages = false;
+                data.setValue("EEE :Incorrect login information!");
+                messages.clear();
+            }
             else
             {
                 data.setValue(tmpData);
@@ -145,13 +153,16 @@ public class TwitchConnect implements Runnable
     // Send a message to the Twitch IRC
     public synchronized void sendMessage(String command)
     {
-        try
+
+        if (acceptingMessages)
         {
-            messages.put(command + "\r\n");
-        }
-        catch (InterruptedException e)
-        {
-            System.out.println(e.getMessage());
+            try
+            {
+                messages.put(command + "\r\n");
+            } catch (InterruptedException e)
+            {
+                System.out.println(e.getMessage());
+            }
         }
     }
 

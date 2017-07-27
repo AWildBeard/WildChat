@@ -4,6 +4,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.Arrays;
+import java.util.Map;
 
 /**
  * @author Clownvin
@@ -72,4 +73,8 @@ public class BasicIO
 
         return buffer.toString();
     }
+
+    public static Map<String, String> getEnvVars() { return System.getenv(); }
+
+    public static String getEnvVars(String variable) { return System.getenv(variable); }
 }

@@ -14,13 +14,10 @@
 
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.beans.property.DoubleProperty;
-import javafx.beans.property.SimpleDoubleProperty;
 import javafx.geometry.HPos;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.geometry.VPos;
-import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
@@ -30,13 +27,12 @@ import javafx.scene.paint.Paint;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
+import java.io.*;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.jar.Attributes;
 
 import static logUtils.Logger.*;
 
@@ -79,29 +75,42 @@ public class WildChat extends Application
             row2Constraints = new RowConstraints(),
             row3Constraints = new RowConstraints();
 
-    private boolean credentialError = false,
-        credentialsAvailable = false,
-        debug = true,
-        connectedToChannel = false;
+    private boolean credentialsAvailable = false,
+                    connectedToChannel = false;
+
+    private final String filePrefix = ".WildChat/",
+                         credentials = "credentials.dat",
+                         badges = "badges/",
+                         dotDirLocation = (System.getProperty("os.name").contains("Windows")) ?
+                             BasicIO.getEnvVars("APPDATA") + "/" : BasicIO.getEnvVars("HOME") + "/",
+                         credentialFile = dotDirLocation + filePrefix + credentials;
+
+    private static final String[][] badgesWithURL = {{"admin", "bits"},
+                                                    {"://static-cdn.jtvnw.net/badges/v1/9ef7e029-4cdf-4d4d-a0d5-e2b3fb2583fe/1"}};
 
     public static volatile boolean connected = false;
 
     public WildChat()
     {
+        boolean credentialError = false,
+                debug = true;
+
         if (launchArgs.length > 0 && launchArgs[0].equals("--no-debug"))
             debug = false;
 
         setShouldLog(debug);
 
-        String credentialFile = "$HOME/.WildChat/credentials";
 
         log("Testing read/write on " + credentialFile);
         if (! FileUtil.canReadWrite(credentialFile))
         {
             log("File " + credentialFile + " either does not exist or can't be read/wrote to");
             log("Attempting to create necessary dirs and file for " + credentialFile);
-            credentialError = ! FileUtil.createFileWithDirs(credentialFile);
+            credentialError = FileUtil.createFileWithDirs(credentialFile);
         }
+        else
+            credentialError = true;
+
         log((credentialError) ? "Can read/write " + credentialFile : "Can't read/write " + credentialFile);
 
         if (credentialsAvailable = FileUtil.hasData(credentialFile))
@@ -115,7 +124,7 @@ public class WildChat extends Application
             }
             catch (IOException | ClassNotFoundException e )
             {
-                credentialError = true;
+                log("Unrecoverable credential read operation");
                 return;
             }
         }
@@ -135,10 +144,6 @@ public class WildChat extends Application
     public void start(Stage primaryStage)
     {
         this.primaryStage = primaryStage;
-
-        log((credentialError) ? "Credential error detected, showing error message" : "");
-        if (credentialError)
-            showCredentialError();
 
         log((! credentialsAvailable) ? "No credentials available, showing input fields" : "");
         if (! credentialsAvailable)
@@ -246,26 +251,15 @@ public class WildChat extends Application
 
             executor.execute(() ->
             {
-                StringBuilder finalMessage = new StringBuilder();
                 String username = null;
 
                 boolean part = data.contains("PART"),
                     join = data.contains("JOIN"),
                     msg = data.contains("PRIVMSG"),
-                    connection = data.substring(0, 18).contains("001");
+                    connection = data.substring(0, 18).contains("001"),
+                    localMessage = data.substring(0, 4).equals("EEE");
 
-                if (connection)
-                {
-
-                    log("Connected to twitch.tv");
-                    Platform.runLater(() ->
-                    {
-                        displayMessage("> Connected to twitch.tv");
-                    });
-                    finalMessage.append("> Please join a channel!");
-                }
-
-                else if (msg)
+                if (msg)
                 {
                     log("Message received");
                     StringBuilder sb = new StringBuilder();
@@ -276,6 +270,7 @@ public class WildChat extends Application
                     String color = null;
                     ArrayList<String> badges = new ArrayList<>();
                     ArrayList<Integer> badgeVersions = new ArrayList<>();
+                    ArrayList<File> badgeIcons = new ArrayList<>();
 
                     // Test for badges
                     categoryStart = data.indexOf("badges=") + 7; // Always 7. Length of badges declaration
@@ -347,20 +342,40 @@ public class WildChat extends Application
                     categoryStart = (data.indexOf(':', data.indexOf("PRIVMSG")));
                     message = data.substring(categoryStart + 1);
 
-                    // Remove EOL chars.
+                    // Remove EOL chars from the message
                     message = message.substring(0, message.length() - 1);
 
+                    // Grab badges
+
+
+                    // Sarcasm
                     final String effectivelyFinalMessage = message;
                     final String effectivelyFinalColor = color;
                     final String effectivelyFinalUserName = username;
                     Platform.runLater(() ->
-                    {
-                        displayMessage(effectivelyFinalMessage, effectivelyFinalColor, effectivelyFinalUserName);
-
-                    });
+                        displayMessage(effectivelyFinalMessage, effectivelyFinalColor, effectivelyFinalUserName)
+                    );
                     // END TODO
                 }
 
+                // Status stuff
+                StringBuilder finalMessage = new StringBuilder();
+
+                if (connection)
+                {
+
+                    log("Connected to twitch.tv");
+                    Platform.runLater(() ->
+                    {
+                        displayMessage("> Connected to twitch.tv");
+                    });
+                    finalMessage.append("> Please join a channel!");
+                }
+                else if (localMessage)
+                {
+                    finalMessage.append("Incorrect login credentials!");
+                    credentialsAvailable = false;
+                }
                 else if (part || join)
                 {
                     int nameStart = (data.indexOf(':'));
@@ -459,31 +474,6 @@ public class WildChat extends Application
 
     }
 
-    private void showCredentialError()
-    {
-        Stage secondaryStage = new Stage();
-        log("Opening credential error window");
-        VBox content = new VBox();
-        Text message = new Text("Error with credential file. Contact @AWildBeard");
-        Button closeButton = new Button("Okay");
-
-        content.getChildren().addAll(message, closeButton);
-
-        closeButton.setOnAction(e -> {
-            log("Exiting!");
-            System.exit(1);
-        });
-
-        content.setAlignment(Pos.CENTER);
-        content.setSpacing(10.0);
-
-        Scene root = new Scene(content, 400, 300);
-
-        secondaryStage.setScene(root);
-        secondaryStage.setTitle("Credential error");
-        secondaryStage.show();
-    }
-
     // TODO: Implement
     private void askForCredentials()
     {
@@ -516,6 +506,23 @@ public class WildChat extends Application
 
             if (client.isReady())
             {
+                Platform.runLater(() ->
+                {
+                    log("Recording client data");
+                    ObjectOutputStream os = null;
+                    try
+                    {
+                        os = new ObjectOutputStream(new FileOutputStream(new File(credentialFile)));
+                        os.writeObject(client);
+                        os.flush();
+                        os.close();
+                    } catch (IOException z)
+                    {
+                        // Something really fucked up.
+                        log("I strangely did not find the credentials file...");
+                    }
+                });
+
                 log("Correct client data entered");
                 secondaryStage.close();
             }
