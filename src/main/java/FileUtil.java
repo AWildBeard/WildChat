@@ -11,7 +11,7 @@ public class FileUtil
 
     public static boolean createFileWithDirs(File file)
     {
-        if (canReadWrite(file))
+        if (exists(file))
             return true;
 
         else
@@ -42,6 +42,10 @@ public class FileUtil
     }
 
     public static boolean createNewFile(String file) { return createNewFile(new File(file)); }
+
+    public static boolean exists(File file) { return file.exists(); }
+
+    public static boolean exists(String file) { return exists(new File(file)); }
 
     public static boolean hasData(File file) { return file.length() >= 1; }
 

@@ -20,6 +20,8 @@ import javafx.geometry.Pos;
 import javafx.geometry.VPos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.*;
@@ -27,12 +29,13 @@ import javafx.scene.paint.Paint;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 
+import javax.swing.plaf.basic.BasicIconFactory;
 import java.io.*;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.jar.Attributes;
 
 import static logUtils.Logger.*;
 
@@ -80,19 +83,15 @@ public class WildChat extends Application
 
     private final String filePrefix = ".WildChat/",
                          credentials = "credentials.dat",
-                         badges = "badges/",
                          dotDirLocation = (System.getProperty("os.name").contains("Windows")) ?
                              BasicIO.getEnvVars("APPDATA") + "/" : BasicIO.getEnvVars("HOME") + "/",
                          credentialFile = dotDirLocation + filePrefix + credentials;
-
-    private static final String[][] badgesWithURL = {{"admin", "bits"},
-                                                    {"://static-cdn.jtvnw.net/badges/v1/9ef7e029-4cdf-4d4d-a0d5-e2b3fb2583fe/1"}};
 
     public static volatile boolean connected = false;
 
     public WildChat()
     {
-        boolean credentialError = false,
+        boolean canAccessCredentials = false,
                 debug = true;
 
         if (launchArgs.length > 0 && launchArgs[0].equals("--no-debug"))
@@ -106,12 +105,12 @@ public class WildChat extends Application
         {
             log("File " + credentialFile + " either does not exist or can't be read/wrote to");
             log("Attempting to create necessary dirs and file for " + credentialFile);
-            credentialError = FileUtil.createFileWithDirs(credentialFile);
+            canAccessCredentials = FileUtil.createFileWithDirs(credentialFile);
         }
         else
-            credentialError = true;
+            canAccessCredentials = true;
 
-        log((credentialError) ? "Can read/write " + credentialFile : "Can't read/write " + credentialFile);
+        log((canAccessCredentials) ? "Can read/write " + credentialFile : "Can't read/write " + credentialFile);
 
         if (credentialsAvailable = FileUtil.hasData(credentialFile))
         {
@@ -266,11 +265,10 @@ public class WildChat extends Application
                     char[] rawData = data.toCharArray();
                     int categoryStart;
                     int endOfCategoryLocation = 0;
+                    boolean hasBadges = false;
                     String message;
                     String color = null;
-                    ArrayList<String> badges = new ArrayList<>();
-                    ArrayList<Integer> badgeVersions = new ArrayList<>();
-                    ArrayList<File> badgeIcons = new ArrayList<>();
+                    ArrayList<Image> badgeIcons = new ArrayList<>();
 
                     // Test for badges
                     categoryStart = data.indexOf("badges=") + 7; // Always 7. Length of badges declaration
@@ -278,6 +276,7 @@ public class WildChat extends Application
 
                     if (! (categoryStart == endOfCategoryLocation))
                     { // Message has badges data
+                        hasBadges = true;
                         for (int count = categoryStart; count <= endOfCategoryLocation; count++)
                         {
                             // End of badges
@@ -288,14 +287,35 @@ public class WildChat extends Application
                             if (rawData[count] == '/')
                             {
                                 // End of badge name found
-                                badges.add(sb.toString());
+                                String badge = sb.toString();
+
+                                if (! Badges.getValidBadges().contains(badge))
+                                {
+                                    sb = new StringBuilder();
+                                    continue;
+                                }
+
                                 count++; // Skip the /
                                 sb = new StringBuilder(); // Clear the StringBuilder
 
                                 while (rawData[count] != ',' && rawData[count] != ';')
                                     sb.append(rawData[count++]);
 
-                                badgeVersions.add(Integer.parseInt(sb.toString()));
+                                String badgeVersion = sb.toString();
+                                String key = badge + "/" + badgeVersion;
+                                String value = Badges.getValue(key);
+
+                                log("Key: " + key);
+                                log("Value: " + value);
+
+                                try
+                                {
+                                    badgeIcons.add(new Image(new URL(value).openStream()));
+                                }
+                                catch (IOException z)
+                                {
+                                    log("Didn't find icon for " + key);
+                                }
 
                                 sb = new StringBuilder(); // Clear the StringBuilder
                             }
@@ -352,9 +372,21 @@ public class WildChat extends Application
                     final String effectivelyFinalMessage = message;
                     final String effectivelyFinalColor = color;
                     final String effectivelyFinalUserName = username;
+                    final ArrayList<Image> effectivelyFinalIconArray = badgeIcons;
+                    final boolean effectivelyFinalBadgeFlag = hasBadges;
                     Platform.runLater(() ->
-                        displayMessage(effectivelyFinalMessage, effectivelyFinalColor, effectivelyFinalUserName)
-                    );
+                    {
+                        if (!effectivelyFinalBadgeFlag)
+                        {
+                            displayMessage(effectivelyFinalMessage, effectivelyFinalColor,
+                                effectivelyFinalUserName, null);
+                        }
+                        else if (effectivelyFinalBadgeFlag)
+                        {
+                            displayMessage(effectivelyFinalMessage, effectivelyFinalColor,
+                                effectivelyFinalUserName, effectivelyFinalIconArray);
+                        }
+                    });
                     // END TODO
                 }
 
@@ -566,7 +598,7 @@ public class WildChat extends Application
         messageHolder.getChildren().add(125, finalMessage);
     }
 
-    private synchronized void displayMessage(String message, String color, String username)
+    private synchronized void displayMessage(String message, String color, String username, ArrayList<Image> badges)
     {
         char[] charWords = message.toCharArray();
         FlowPane flowPane = new FlowPane();
@@ -574,16 +606,27 @@ public class WildChat extends Application
         StringBuilder sb = new StringBuilder();
 
         flowPane.setOrientation(Orientation.HORIZONTAL);
+        flowPane.setHgap(4.0);
         flowPane.prefWidthProperty().bind(messagePane.widthProperty());
         userName.setTextFill(Paint.valueOf(color));
 
-        flowPane.getChildren().add(userName);
+        flowPane.getChildren().add(new Label(">"));
+
+        if (badges != null)
+        {
+            for (Image icon : badges)
+                flowPane.getChildren().add(new ImageView(icon));
+        }
+
+        flowPane.getChildren().addAll(userName, new Label(":"));
 
         int lastChar = charWords.length - 1;
         int index = 0;
         for (char c : charWords)
         {
-            sb.append(c);
+            if (c != 32)
+                sb.append(c);
+
             if (c == 32 || index == lastChar)
             {
                 flowPane.getChildren().add(new Label(sb.toString()));
