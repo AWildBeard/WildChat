@@ -1,3 +1,5 @@
+import javafx.scene.image.Image;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -5,6 +7,10 @@ import java.util.Map;
 
 public class Badges
 {
+    private static ArrayList<Image> downloadedBadges = new ArrayList<>();
+
+    private static ArrayList<String> badgeNamesAtIndex = new ArrayList<>();
+
     // Prevent instantiation
     private Badges() {}
 
@@ -67,4 +73,23 @@ public class Badges
     }
 
     public static String getValue(String key) { return getBadgesWithURLs().get(key); }
+
+    public static void cacheBadge(Image badge, String badgeName)
+    {
+        if (badge != null && badgeName != null)
+        {
+            downloadedBadges.add(badge);
+            badgeNamesAtIndex.add(badgeName);
+        }
+    }
+
+    public static boolean hasBadge(String badgeName) { return badgeName != null && badgeNamesAtIndex.contains(badgeName);}
+
+    public static Image getBadge(String badgeName)
+    {
+        if (badgeName != null)
+            return downloadedBadges.get(badgeNamesAtIndex.indexOf(badgeName));
+
+        throw new IllegalArgumentException("You did not give me a badgeName!");
+    }
 }

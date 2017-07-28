@@ -78,8 +78,14 @@ public class WildChat extends Application
             row2Constraints = new RowConstraints(),
             row3Constraints = new RowConstraints();
 
+    private static ArrayList<String> clientBadgesValues = new ArrayList<>();
+
+    private static String clientColorValue = null,
+                          clientsDisplayName = null;
+
     private boolean credentialsAvailable = false,
-                    connectedToChannel = false;
+                    connectedToChannel = false,
+                    hasUserState = false;
 
     private final String filePrefix = ".WildChat/",
                          credentials = "credentials.dat",
@@ -231,7 +237,24 @@ public class WildChat extends Application
                     if (connectedToChannel)
                     {
                         sendMessage("PRIVMSG " + session.getChannel() + " :" + message);
-                        displayMessage("> " + client.getNick() + ": " + message);
+
+                        if (! hasUserState)
+                            displayMessage("> " + client.getNick() + ": " + message);
+
+                        else
+                        {
+                            ArrayList<Image> clientImageBadges  = null;
+
+                            if (clientBadgesValues.size() >= 1)
+                            {
+                                clientImageBadges = new ArrayList<>();
+
+                                for (String badge : clientBadgesValues)
+                                    clientImageBadges.add(Badges.getBadge(badge));
+                            }
+
+                            displayMessage(message, clientColorValue, clientsDisplayName, clientImageBadges);
+                        }
                     }
                     else
                     {
@@ -256,10 +279,13 @@ public class WildChat extends Application
                     join = data.contains("JOIN"),
                     msg = data.contains("PRIVMSG"),
                     connection = data.substring(0, 18).contains("001"),
+                    userState = data.contains("USERSTATE"),
                     localMessage = data.substring(0, 4).equals("EEE");
 
                 if (msg)
                 {
+                    // TODO: Remove duplicate
+
                     log("Message received");
                     StringBuilder sb = new StringBuilder();
                     char[] rawData = data.toCharArray();
@@ -287,9 +313,9 @@ public class WildChat extends Application
                             if (rawData[count] == '/')
                             {
                                 // End of badge name found
-                                String badge = sb.toString();
+                                String badgeNameString = sb.toString();
 
-                                if (! Badges.getValidBadges().contains(badge))
+                                if (! Badges.getValidBadges().contains(badgeNameString))
                                 {
                                     sb = new StringBuilder();
                                     continue;
@@ -302,15 +328,24 @@ public class WildChat extends Application
                                     sb.append(rawData[count++]);
 
                                 String badgeVersion = sb.toString();
-                                String key = badge + "/" + badgeVersion;
+                                String key = badgeNameString + "/" + badgeVersion;
                                 String value = Badges.getValue(key);
-
-                                log("Key: " + key);
-                                log("Value: " + value);
 
                                 try
                                 {
-                                    badgeIcons.add(new Image(new URL(value).openStream()));
+                                    if (Badges.hasBadge(key))
+                                    {
+                                        log("Already have key: " + key);
+                                        badgeIcons.add(Badges.getBadge(key));
+                                    }
+
+                                    else
+                                    {
+                                        log("Do not have key: " + key);
+                                        Image badge = new Image(new URL(value).openStream());
+                                        Badges.cacheBadge(badge, key);
+                                        badgeIcons.add(badge);
+                                    }
                                 }
                                 catch (IOException z)
                                 {
@@ -387,54 +422,155 @@ public class WildChat extends Application
                                 effectivelyFinalUserName, effectivelyFinalIconArray);
                         }
                     });
-                    // END TODO
+                    // END TODO: Remove duplicate
                 }
-
-                // Status stuff
-                StringBuilder finalMessage = new StringBuilder();
-
-                if (connection)
+                else if (userState)
                 {
+                    // TODO: Remove duplicate
+                    char[] rawData = data.toCharArray();
+                    int categoryStart = 0;
+                    int endOfCategoryLocation = 0;
+                    StringBuilder sb = new StringBuilder();
 
-                    log("Connected to twitch.tv");
-                    Platform.runLater(() ->
-                    {
-                        displayMessage("> Connected to twitch.tv");
-                    });
-                    finalMessage.append("> Please join a channel!");
-                }
-                else if (localMessage)
-                {
-                    finalMessage.append("Incorrect login credentials!");
-                    credentialsAvailable = false;
-                }
-                else if (part || join)
-                {
-                    int nameStart = (data.indexOf(':'));
-                    int endOfNameLocation = (data.indexOf('!', nameStart));
-                    int channelStart = data.indexOf('#');
-                    username = data.substring(nameStart + 1, endOfNameLocation);
-                    String channel = data.substring(channelStart, data.length() - 1);
+                    // Test for badges
+                    categoryStart = data.indexOf("badges=") + 7; // Always 7. Length of badges declaration
+                    endOfCategoryLocation = data.indexOf(';', categoryStart);
 
-                    if (part)
-                    {
-                        log("User left channel received");
-                        finalMessage.append("> " + username + " left channel " + channel);
+                    if (! (categoryStart == endOfCategoryLocation))
+                    { // Message has badges data
+                        for (int count = categoryStart; count <= endOfCategoryLocation; count++)
+                        {
+                            // End of badges
+                            if (count == endOfCategoryLocation)
+                                break;
+
+                            // Found badge name end and beginning of badge version
+                            if (rawData[count] == '/')
+                            {
+                                // End of badge name found
+                                String badgeNameString = sb.toString();
+
+                                if (! Badges.getValidBadges().contains(badgeNameString))
+                                {
+                                    sb = new StringBuilder();
+                                    continue;
+                                }
+
+                                count++; // Skip the /
+                                sb = new StringBuilder(); // Clear the StringBuilder
+
+                                while (rawData[count] != ',' && rawData[count] != ';')
+                                    sb.append(rawData[count++]);
+
+                                String badgeVersion = sb.toString();
+                                String key = badgeNameString + "/" + badgeVersion;
+                                String value = Badges.getValue(key);
+
+                                try
+                                {
+                                    if (Badges.hasBadge(key))
+                                    {
+                                        log("Already have key: " + key);
+                                        break;
+                                    }
+
+                                    else
+                                    {
+                                        log("Don't have key: " + key);
+                                        Image badge = new Image(new URL(value).openStream());
+                                        Badges.cacheBadge(badge, key);
+                                        clientBadgesValues.add(key);
+                                    }
+                                }
+                                catch (IOException z)
+                                {
+                                    log("Didn't find icon for " + key);
+                                }
+
+                                sb = new StringBuilder(); // Clear the StringBuilder
+                            }
+                            else
+                                sb.append(rawData[count]);
+                        }
                     }
 
-                    if (join)
-                    {
-                        log("User join channel received");
-                        finalMessage.append("> " + username + " joined channel " + channel);
-                    }
-                }
+                    // Test for color
+                    categoryStart = data.indexOf("color=") + 6; // Always 6. Length of color declaration
+                    endOfCategoryLocation = data.indexOf(';', categoryStart);
 
-                if (part || join || connection)
+                    if (! (categoryStart == endOfCategoryLocation))
+                    { // Message has color data
+                        sb = new StringBuilder(); // Clear the StringBuilder
+                        for (int count = categoryStart ; count <= endOfCategoryLocation ; count++)
+                        {
+                            if (count == endOfCategoryLocation) // The end of the color field
+                            {
+                                clientColorValue = sb.toString();
+                                break;
+                            }
+
+                            else
+                                sb.append(rawData[count]);
+                        }
+                    }
+
+                    // Grab the username
+                    categoryStart = data.indexOf("display-name=") + 13;
+                    endOfCategoryLocation = data.indexOf(';', categoryStart);
+                    clientsDisplayName = data.substring(categoryStart, endOfCategoryLocation);
+
+                    hasUserState = true;
+
+                    // END TODO: Remove duplicate
+                }
+                else
                 {
-                    Platform.runLater(() ->
+                    // Status stuff
+                    StringBuilder finalMessage = new StringBuilder();
+
+                    if (connection)
                     {
-                        displayMessage(finalMessage.toString());
-                    });
+
+                        log("Connected to twitch.tv");
+                        Platform.runLater(() ->
+                        {
+                            displayMessage("> Connected to twitch.tv");
+                        });
+                        finalMessage.append("> Please join a channel!");
+                    }
+                    else if (localMessage)
+                    {
+                        finalMessage.append("Incorrect login credentials!");
+                        credentialsAvailable = false;
+                    }
+                    else if (part || join)
+                    {
+                        int nameStart = (data.indexOf(':'));
+                        int endOfNameLocation = (data.indexOf('!', nameStart));
+                        int channelStart = data.indexOf('#');
+                        username = data.substring(nameStart + 1, endOfNameLocation);
+                        String channel = data.substring(channelStart, data.length() - 1);
+
+                        if (part)
+                        {
+                            log("User left channel received");
+                            finalMessage.append("> " + username + " left channel " + channel);
+                        }
+
+                        if (join)
+                        {
+                            log("User join channel received");
+                            finalMessage.append("> " + username + " joined channel " + channel);
+                        }
+                    }
+
+                    if (part || join || connection)
+                    {
+                        Platform.runLater(() ->
+                        {
+                            displayMessage(finalMessage.toString());
+                        });
+                    }
                 }
             });
         });
@@ -608,7 +744,9 @@ public class WildChat extends Application
         flowPane.setOrientation(Orientation.HORIZONTAL);
         flowPane.setHgap(4.0);
         flowPane.prefWidthProperty().bind(messagePane.widthProperty());
-        userName.setTextFill(Paint.valueOf(color));
+
+        if (color != null)
+            userName.setTextFill(Paint.valueOf(color));
 
         flowPane.getChildren().add(new Label(">"));
 
