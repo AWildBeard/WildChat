@@ -1,3 +1,5 @@
+import javafx.scene.Node;
+import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 
 import java.io.IOException;
@@ -9,22 +11,26 @@ import static logUtils.Logger.log;
 public class HandleData
 {
     private String data = null,
-        privMsgData = null,
         userName = null,
+        userNameForPRIVMSG,
         userChannel = null,
         displayName = null,
-        userNameColor = null;
+        userNameColor = null,
+        emoteDownloadURL = "http://static-cdn.jtvnw.net/emoticons/v1/%s/1.0";
 
     private boolean isPrivMsg = false,
         isUserJoinMsg = false,
         isUserLeaveMsg = false,
         isSucessfulConnectionNotification = false,
         isUserStateUpdate = false,
+        hasEmoteData = false,
         isLocalMessage = false;
 
     private char[] rawData;
 
     private StringBuilder sb = new StringBuilder();
+
+    private ArrayList<Node> privMsgData = null;
 
     public HandleData(String data)
     {
@@ -36,7 +42,10 @@ public class HandleData
     private void determineMessageType()
     {
         if (data.contains("PRIVMSG"))
+        {
             isPrivMsg = true;
+            hasEmoteData = ! data.contains("emotes=;");
+        }
 
         else
         {
@@ -50,20 +59,141 @@ public class HandleData
     }
 
     // PRIVMSG and USERSTATE
-    public String getPrivMsgData()
+    public ArrayList<Node> getPrivMsgData()
     {
-
         if ((isPrivMsg || isUserStateUpdate) && privMsgData == null)
         {
-            String message = null;
-            int categoryStart = 0;
-
+            privMsgData = new ArrayList<>();
             // Grab the message
-            categoryStart = (data.indexOf(':', data.indexOf("PRIVMSG")));
-            message = data.substring(categoryStart + 1);
+            int categoryStart = data.indexOf(":", data.indexOf("PRIVMSG")) + 1;
+            String message = data.substring(categoryStart);
+            char[] rawMessage = message.substring(0, message.length() - 1).toCharArray();
 
-            // Remove EOL chars from the message
-            privMsgData = message.substring(0, message.length() - 1);
+            if (hasEmoteData)
+            {
+                ArrayList<String> emoteIDs = new ArrayList<>();
+                ArrayList<String> emoteIndex = new ArrayList<>();
+                int emoteStart = data.indexOf("emotes=") + 7;
+                int endEmoteCategory = data.indexOf(';', emoteStart) + 1;
+                StringBuilder sb = new StringBuilder();
+
+                char[] emoteDataChars = data.substring(emoteStart, endEmoteCategory).toCharArray();
+
+                int indexOfEmoteID = -1;
+                int countOfEmoteIndex = 0;
+                for (char c : emoteDataChars)
+                {
+                    if (c == ':')
+                    {
+                        emoteIDs.add(sb.toString());
+                        sb = new StringBuilder();
+                        indexOfEmoteID++;
+                        continue;
+                    }
+                    if (c == ',')
+                    {
+                        emoteIndex.add(sb.toString());
+                        emoteIDs.add(emoteIDs.get(indexOfEmoteID));
+                        countOfEmoteIndex++;
+                        sb = new StringBuilder();
+                        continue;
+                    }
+                    if (c == '/')
+                    {
+                        emoteIndex.add(sb.toString());
+                        countOfEmoteIndex++;
+                        sb = new StringBuilder();
+                        continue;
+                    }
+                    if (c == ';')
+                    {
+                        emoteIndex.add(sb.toString());
+                        sb = new StringBuilder();
+                        countOfEmoteIndex++;
+                        break;
+                    }
+
+                    sb.append(c);
+                }
+
+                for (String emoteIndexes : emoteIndex)
+                {
+                    log(emoteIndexes);
+                }
+
+                try
+                {
+                    for (String id : emoteIDs)
+                    {
+                        if (! Emotes.hasEmote(id))
+                        {
+                            log("Getting emote: " + id);
+                            Emotes.cacheEmote(new Image(new URL(String.format(emoteDownloadURL, id)).openStream()), id);
+                        }
+                        else
+                            log("Already have emote: " + id);
+                    }
+                }
+                catch (IOException e)
+                {
+                    log(e.getMessage());
+                }
+
+                sb = new StringBuilder();
+
+                int[][] emoteIndexes = new int[countOfEmoteIndex][2];
+                int firstNumber = 0;
+                for (String combinedIndex : emoteIndex)
+                {
+                    int indexGroupLength = combinedIndex.toCharArray().length;
+                    int index = 0;
+                    for (char c : combinedIndex.toCharArray())
+                    {
+                        index++;
+                        if (c == '-')
+                        {
+                            emoteIndexes[firstNumber][0] = Integer.parseInt(sb.toString());
+                            sb = new StringBuilder();
+                            continue;
+                        }
+                        if (index == indexGroupLength)
+                        {
+                            emoteIndexes[firstNumber][1] = (Integer.parseInt(sb.toString()) + 1); // + 1 to include last char
+                            sb = new StringBuilder();
+                            break;
+                        }
+                        sb.append(c);
+                    }
+                    firstNumber++;
+                }
+
+                for (int[] row : emoteIndexes)
+                {
+                    for (int index : row)
+                    {
+                        log(String.valueOf(index));
+                    }
+                }
+            }
+            else
+            {
+                int lastChar = rawMessage.length;
+                int index = 0;
+                for (char c : rawMessage)
+                {
+                    index++;
+                    if ( c != 32)
+                    {
+                        sb.append(c);
+                    }
+
+                    if (c == 32 || index == lastChar)
+                    {
+                        privMsgData.add(new Label(sb.toString()));
+                        sb = new StringBuilder();
+                    }
+                }
+            }
         }
 
         return  privMsgData;
@@ -250,6 +380,19 @@ public class HandleData
         }
 
         return badgeSignatures;
+    }
+
+    public String getUserNameForPRIVMSG()
+    {
+        if (isPrivMsg && userNameForPRIVMSG == null)
+        {
+            int nameStart = data.indexOf(":", data.indexOf("user-type="));
+            int endOfNameLocation = data.indexOf("!", nameStart);
+            userNameForPRIVMSG = data.substring(nameStart + 1, endOfNameLocation);
+            log("Calculated userName: " + userNameForPRIVMSG);
+        }
+
+        return userNameForPRIVMSG;
     }
     // END TODO
 

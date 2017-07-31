@@ -14,10 +14,8 @@
 
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.geometry.HPos;
-import javafx.geometry.Orientation;
-import javafx.geometry.Pos;
-import javafx.geometry.VPos;
+import javafx.geometry.*;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
@@ -60,11 +58,12 @@ public class WildChat extends Application
     private MenuItem connect = new MenuItem("Connect"),
             disconnect = new MenuItem("Disconnect");
 
-    private ScrollPane messagePane = new ScrollPane();
+    private ScrollPane messagePane = new ScrollPane(),
+            userListPane = new ScrollPane();
+
+    private UserList userList = new UserList();
 
     private VBox messageHolder = new VBox();
-
-    private ListView<String> userList = new ListView<>();
 
     private TextField messageField = new TextField();
 
@@ -164,9 +163,9 @@ public class WildChat extends Application
         menuBar.getMenus().addAll(connections, settings);
         menuBar.setMaxHeight(22.0);
         messageField.setPromptText("Message");
-        userList.setMaxWidth(250.0);
-        userList.setPrefWidth(175.0);
-        userList.setMinWidth(100.0);
+        userListPane.setMaxWidth(250.0);
+        userListPane.setPrefWidth(175.0);
+        userListPane.setMinWidth(100.0);
         messageHolder.setSpacing(3.0);
         messagePane.setPrefWidth(450.0);
         messagePane.setMinWidth(100.0);
@@ -193,9 +192,12 @@ public class WildChat extends Application
         mainContent.getRowConstraints().addAll(row1Constraints, row2Constraints, row3Constraints);
 
         messagePane.setContent(messageHolder);
+        userListPane.setContent(userList);
+        userList.setSpacing(3.0);
+        VBox.setMargin(userList, new Insets(4, 0, 4, 4));
         mainContent.add(menuBar, 0, 0, 2, 1);
         mainContent.add(messagePane, 0, 1);
-        mainContent.add(userList, 1, 1);
+        mainContent.add(userListPane, 1, 1);
         mainContent.add(messageField, 0, 2, 2, 1);
 
         Scene root = new Scene(mainContent, 650, 400);
@@ -228,7 +230,8 @@ public class WildChat extends Application
         {
             if (event.getCode().equals(KeyCode.ENTER))
             {
-                String message = messageField.getText();
+                String message = messageField.getText().trim();
+                char[] rawMessage = message.toCharArray();
                 if (message.length() > 0)
                 {
                     if (connectedToChannel)
@@ -241,6 +244,8 @@ public class WildChat extends Application
                         else
                         {
                             ArrayList<Image> clientImageBadges = null;
+                            ArrayList<Node> messageNodes = new ArrayList<>();
+                            StringBuilder sb = new StringBuilder();
 
                             if (clientBadgeSignatures.size() >= 1)
                             {
@@ -250,7 +255,31 @@ public class WildChat extends Application
                                     clientImageBadges.add(Badges.getBadge(badge));
                             }
 
-                            displayMessage(message, clientColorValue, clientsDisplayName, clientImageBadges);
+                            if (userList.indexOfUsersHBox(client.getNick()) != null)
+                                userList.addBadgesToUser(client.getNick(), clientImageBadges);
+
+                            else
+                                userList.addUser(client.getNick(), clientImageBadges);
+
+                            int messageLength = message.length();
+                            int index = 0;
+                            for (char c : rawMessage)
+                            {
+                                index++;
+                                if (c == 32)
+                                {
+                                    messageNodes.add(new Label(sb.toString()));
+                                    sb = new StringBuilder();
+                                    continue;
+                                }
+
+                                sb.append(c);
+
+                                if (index == messageLength)
+                                    messageNodes.add(new Label(sb.toString()));
+                            }
+
+                            displayMessage(messageNodes, clientColorValue, clientsDisplayName, clientImageBadges);
                         }
                     }
                     else
@@ -263,13 +292,12 @@ public class WildChat extends Application
         });
 
         socketRunner.getDataProperty().addListener(e ->
-        {
-            String data = socketRunner.getData();
-
-            log(data);
-
             executor.execute(() ->
             {
+                String data = socketRunner.getData();
+
+                log(data);
+
                 HandleData dataHandler = new HandleData(data);
 
                 if (dataHandler.isPrivMsg())
@@ -279,14 +307,17 @@ public class WildChat extends Application
                     dataHandler.getPrivMsgData();
                     dataHandler.getUserNameColor();
                     dataHandler.getDisplayName();
+                    log("Specific userName: " + dataHandler.getUserNameForPRIVMSG());
 
                     // Sarcasm
                     final ArrayList<Image> effectivelyFinalIconArray = dataHandler.getBadges();
 
                     Platform.runLater(() ->
+                    {
+                        userList.addUser(dataHandler.getUserNameForPRIVMSG(), effectivelyFinalIconArray);
                         displayMessage(dataHandler.getPrivMsgData(), dataHandler.getUserNameColor(),
-                            dataHandler.getDisplayName(), effectivelyFinalIconArray)
-                    );
+                            dataHandler.getDisplayName(), effectivelyFinalIconArray);
+                    });
                 }
                 else if (dataHandler.isUserStateUpdate())
                 {
@@ -319,9 +350,10 @@ public class WildChat extends Application
                     // Compute all the stuffs
                     dataHandler.getUserName();
                     dataHandler.getChannel();
-                    Platform.runLater(() -> displayMessage(
-                        "> " + dataHandler.getUserName() + " joined channel " + dataHandler.getChannel())
-                    );
+                    Platform.runLater(() ->
+                    {
+                        userList.addUser(dataHandler.getUserName());
+                    });
                 }
                 else if (dataHandler.isUserLeaveMsg())
                 {
@@ -329,14 +361,15 @@ public class WildChat extends Application
                     // Compute all the stuffs
                     dataHandler.getUserName();
                     dataHandler.getChannel();
-                    Platform.runLater(() -> displayMessage(
-                        "> " + dataHandler.getUserName() + " left channel " + dataHandler.getChannel()
-                    ));
+                    Platform.runLater(() ->
+                    {
+                        userList.removeUser(dataHandler.getUserName());
+                    });
                 }
 
                 Runtime.getRuntime().gc(); // get rid of all those StringBuilder ghosts!
-            });
-        });
+            })
+        );
 
         this.primaryStage.setScene(root);
         this.primaryStage.setTitle("WildChat");
@@ -497,12 +530,10 @@ public class WildChat extends Application
         messageHolder.getChildren().add(125, finalMessage);
     }
 
-    private synchronized void displayMessage(String message, String color, String username, ArrayList<Image> badges)
+    private synchronized void displayMessage(ArrayList<Node> message, String color, String username, ArrayList<Image> badges)
     {
-        char[] charWords = message.toCharArray();
         FlowPane flowPane = new FlowPane();
         Label userName = new Label(username);
-        StringBuilder sb = new StringBuilder();
 
         flowPane.setOrientation(Orientation.HORIZONTAL);
         flowPane.setHgap(4.0);
@@ -519,20 +550,8 @@ public class WildChat extends Application
 
         flowPane.getChildren().addAll(userName, new Label(":"));
 
-        int lastChar = charWords.length - 1;
-        int index = 0;
-        for (char c : charWords)
-        {
-            if (c != 32)
-                sb.append(c);
-
-            if (c == 32 || index == lastChar)
-            {
-                flowPane.getChildren().add(new Label(sb.toString()));
-                sb = new StringBuilder();
-            }
-            index++;
-        }
+        for (Node node : message)
+            flowPane.getChildren().add(node);
 
         messageHolder.getChildren().remove(0);
         messageHolder.getChildren().add(125, flowPane);
