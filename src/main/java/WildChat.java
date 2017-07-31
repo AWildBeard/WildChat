@@ -91,6 +91,8 @@ public class WildChat extends Application
 
     public static volatile boolean connected = false;
 
+    private static boolean connectionMessageReceived = false;
+
     public WildChat()
     {
         boolean canAccessCredentials = false,
@@ -302,21 +304,29 @@ public class WildChat extends Application
 
                 if (dataHandler.isPrivMsg())
                 {
+                    String name;
                     log("PRIVMSG received");
                     // Compute all the stuffs
                     dataHandler.getPrivMsgData();
                     dataHandler.getUserNameColor();
+                    if (dataHandler.getDisplayName() == null)
+                        name = dataHandler.getUserNameForPRIVMSG();
+
+                    else
+                        name = dataHandler.getDisplayName();
+
                     dataHandler.getDisplayName();
                     log("Specific userName: " + dataHandler.getUserNameForPRIVMSG());
 
                     // Sarcasm
+                    final String uName = name;
                     final ArrayList<Image> effectivelyFinalIconArray = dataHandler.getBadges();
 
                     Platform.runLater(() ->
                     {
                         userList.addUser(dataHandler.getUserNameForPRIVMSG(), effectivelyFinalIconArray);
                         displayMessage(dataHandler.getPrivMsgData(), dataHandler.getUserNameColor(),
-                            dataHandler.getDisplayName(), effectivelyFinalIconArray);
+                            uName, effectivelyFinalIconArray);
                     });
                 }
                 else if (dataHandler.isUserStateUpdate())
@@ -331,12 +341,16 @@ public class WildChat extends Application
                 }
                 else if (dataHandler.isSucessfulConnectionNotification())
                 {
-                    log("Connected to twitch.tv");
-                    Platform.runLater(() ->
+                    if (!connectionMessageReceived)
                     {
-                        displayMessage("> Connected to twitch.tv");
-                        displayMessage("> Please join a channel!");
-                    });
+                        connectionMessageReceived = true;
+                        log("Connected to twitch.tv");
+                        Platform.runLater(() ->
+                        {
+                            displayMessage("> Connected to twitch.tv");
+                            displayMessage("> Please join a channel!");
+                        });
+                    }
                 }
                 else if (dataHandler.isLocalMessage())
                 {

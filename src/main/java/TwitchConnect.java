@@ -25,12 +25,6 @@ public class TwitchConnect implements Runnable
     // Basically a first in first out array list that is also thread safe :D
     private static LinkedBlockingQueue<String> messages = new LinkedBlockingQueue<>();
 
-    // Holds the direct contact from the Twitch IRC. Done this so we can test what Twitch has sent us instead
-    // of triggering the StringProperty and then testing.
-    private String tmpData;
-
-    private Socket socket;
-
     // The client using the program. Contains the user name and OAUTH token.
     private final Client client;
 
@@ -44,7 +38,7 @@ public class TwitchConnect implements Runnable
     private final Thread messageSender = new Thread(() ->
     {
         log("messageSender running");
-        while (WildChat.connected)
+        while (true)
         {
             try
             {
@@ -92,10 +86,10 @@ public class TwitchConnect implements Runnable
         messageSender.start();
 
         log("messageReceiver service running");
-        while (WildChat.connected)
+        while (true)
         {
             // Don't add the received data directly to the StringProperty. Check it for relevance before adding.
-            tmpData = String.valueOf(BasicIO.readLine(is));
+            String tmpData = String.valueOf(BasicIO.readLine(is));
 
             if (tmpData.substring(0, 4).equals("PING"))
             {
@@ -119,7 +113,7 @@ public class TwitchConnect implements Runnable
         try
         {
             log("Connecting to twitch IRC services");
-            socket = new Socket(TwitchConnectionInfo.getHost(), TwitchConnectionInfo.getPort());
+            Socket socket = new Socket(TwitchConnectionInfo.getHost(), TwitchConnectionInfo.getPort());
             WildChat.connected = true;
             is = new DataInputStream(socket.getInputStream());
             os = new DataOutputStream(socket.getOutputStream());

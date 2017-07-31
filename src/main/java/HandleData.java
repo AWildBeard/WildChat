@@ -1,10 +1,19 @@
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.impl.client.DefaultHttpClient;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 import static logUtils.Logger.log;
 
@@ -16,6 +25,7 @@ public class HandleData
         userChannel = null,
         displayName = null,
         userNameColor = null,
+        clientID = "fb7mlvnq5fgh7isjrx0ce14f27f6nq",
         emoteDownloadURL = "http://static-cdn.jtvnw.net/emoticons/v1/%s/1.0";
 
     private boolean isPrivMsg = false,
@@ -52,7 +62,7 @@ public class HandleData
             isPrivMsg = false;
             isUserJoinMsg = data.contains("JOIN");
             isUserLeaveMsg = data.contains("PART");
-            isSucessfulConnectionNotification = data.contains("001");
+            isSucessfulConnectionNotification = data.contains("001") || data.contains("376") || data.contains("002");
             isUserStateUpdate = data.contains("USERSTATE");
             isLocalMessage = data.substring(0, 4).contains("EEE");
         }
@@ -116,11 +126,7 @@ public class HandleData
                     sb.append(c);
                 }
 
-                for (String emoteIndexes : emoteIndex)
-                {
-                    log(emoteIndexes);
-                }
-
+                // Get emotes in the message from twitch
                 try
                 {
                     for (String id : emoteIDs)
@@ -150,6 +156,10 @@ public class HandleData
                     for (char c : combinedIndex.toCharArray())
                     {
                         index++;
+                        if (c != '-')
+                        {
+                            sb.append(c);
+                        }
                         if (c == '-')
                         {
                             emoteIndexes[firstNumber][0] = Integer.parseInt(sb.toString());
@@ -158,22 +168,51 @@ public class HandleData
                         }
                         if (index == indexGroupLength)
                         {
-                            emoteIndexes[firstNumber][1] = (Integer.parseInt(sb.toString()) + 1); // + 1 to include last char
+                            emoteIndexes[firstNumber][1] = Integer.parseInt(sb.toString()); // + 1 to include last char
                             sb = new StringBuilder();
-                            break;
                         }
-                        sb.append(c);
                     }
                     firstNumber++;
                 }
 
-                for (int[] row : emoteIndexes)
+                sb = new StringBuilder();
+
+                // Add the words to the final message and all emotes too.
+                int lasChar = rawMessage.length - 1;
+                boolean emoteDetected = false;
+                for (int index = 0 ; index < rawMessage.length ; index++)
                 {
-                    for (int index : row)
+                    emoteDetected = false;
+                    char c = rawMessage[index];
+
+                    int count = 0; // row count
+                    for (int[] row : emoteIndexes)
                     {
-                        log(String.valueOf(index));
+                        if (row[0] == index)
+                        {
+                            log("Emote detected");
+                            emoteDetected = true;
+                            privMsgData.add(new ImageView(Emotes.getEmote(emoteIDs.get(count))));
+                            while (index != row[1])
+                                index++; // skip over the emote data
+                        }
+                        count++;
+                    }
+
+                    if (c != 32 && !emoteDetected)
+                    {
+                        log("Letter detected...");
+                        sb.append(c);
+                    }
+
+                    if ((c == 32 || index == lasChar) && !emoteDetected)
+                    {
+                        log("Space or lastChar detected, adding word to final message..");
+                        privMsgData.add(new Label(sb.toString()));
+                        sb = new StringBuilder();
                     }
                 }
+                log("Finished emote operation..");
             }
             else
             {
@@ -238,6 +277,10 @@ public class HandleData
             // Grab the displayName
             int categoryStart = data.indexOf("display-name=") + 13;
             int endOfCategoryLocation = data.indexOf(';', categoryStart);
+
+            if (categoryStart == endOfCategoryLocation)
+                return null;
+
             displayName = data.substring(categoryStart, endOfCategoryLocation);
             log("Calculated displayName: " + displayName);
         }
@@ -420,6 +463,52 @@ public class HandleData
         }
 
         return userChannel;
+    }
+
+    public Map<String, String> getEmoteCodesAndIDs()
+    {
+        HashMap<String, String> map = null;
+        if (isUserStateUpdate)
+        {
+            map = new HashMap<>();
+            int emoteSetStart = data.indexOf("emote-sets=") + 11;
+            int emoteSetEndLocation = data.indexOf(';', emoteSetStart) + 1;
+            StringBuilder sb = new StringBuilder();
+            ArrayList<String> emoteSetIds = new ArrayList<>();
+
+            char[] rawEmoteSet = data.substring(emoteSetStart, emoteSetEndLocation).toCharArray();
+
+            for (char c : rawEmoteSet)
+            {
+                sb.append(c);
+                if (c == ',' || c == ';')
+                {
+                    emoteSetIds.add(sb.toString());
+                    sb = new StringBuilder();
+                }
+            }
+
+            try
+            {
+                for (String emoteID : emoteSetIds)
+                {
+                    log("Get link: " + String.format("http://api.twitch.tv/kraken/chat/emoticon_images?emotesets=%s", emoteID));
+                    URL url = new URL(String.format("http://api.twitch.tv/kraken/chat/emoticon_images?emotesets=%s", emoteID));
+                    HttpClient client = new DefaultHttpClient();
+                    HttpUriRequest request = new HttpGet(url.toURI());
+                    request.addHeader("Accept:", "application/vnd.twitchtv.v5+json");
+                    request.addHeader("Client-ID:", clientID);
+                    HttpResponse response = client.execute(request);
+                    log(response.toString());
+                }
+            }
+            catch(IOException | URISyntaxException e)
+            {
+                log(e.getMessage());
+            }
+
+        }
+        return map;
     }
 
     public boolean isUserJoinMsg() { return isUserJoinMsg; }
