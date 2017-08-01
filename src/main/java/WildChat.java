@@ -29,6 +29,7 @@ import javafx.stage.Stage;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -209,24 +210,9 @@ public class WildChat extends Application
             messageHolder.getChildren().add(count, new Text(" "));
         }
 
-        disconnect.setOnAction(e ->
-        {
-            if (connectedToChannel)
-            {
-                log("Disconnecting from " + session.getChannel());
-                sendMessage("PART " + session.getChannel());
-                displayMessage("> Leaving channel " + session.getChannel());
-            }
-            else
-            {
-                displayMessage("> You are not connected to a channel!");
-            }
-        });
+        disconnect.setOnAction(e -> disconnectFromChannel());
 
-        connect.setOnAction(e ->
-        {
-            showConnectWindow();
-        });
+        connect.setOnAction(e -> showConnectWindow());
 
         messageField.setOnKeyPressed(event ->
         {
@@ -257,11 +243,7 @@ public class WildChat extends Application
                                     clientImageBadges.add(Badges.getBadge(badge));
                             }
 
-                            if (userList.indexOfUsersHBox(client.getNick()) != null)
-                                userList.addBadgesToUser(client.getNick(), clientImageBadges);
-
-                            else
-                                userList.addUser(client.getNick(), clientImageBadges);
+                            userList.addUser(client.getNick(), clientImageBadges);
 
                             int messageLength = message.length();
                             int index = 0;
@@ -286,7 +268,7 @@ public class WildChat extends Application
                     }
                     else
                     {
-                        displayMessage("> You are not connected to a channel!");
+                        displayMessage("> You are not connected to a channel yet!");
                     }
                     messageField.clear();
                 }
@@ -302,44 +284,46 @@ public class WildChat extends Application
 
                 HandleData dataHandler = new HandleData(data);
 
-                if (dataHandler.isPrivMsg())
+                if (dataHandler.isPrivMsg() && connectedToChannel)
                 {
-                    String name;
                     log("PRIVMSG received");
+
                     // Compute all the stuffs
-                    dataHandler.getPrivMsgData();
-                    dataHandler.getUserNameColor();
-                    if (dataHandler.getDisplayName() == null)
-                        name = dataHandler.getUserNameForPRIVMSG();
-
-                    else
-                        name = dataHandler.getDisplayName();
-
-                    dataHandler.getDisplayName();
-                    log("Specific userName: " + dataHandler.getUserNameForPRIVMSG());
-
-                    // Sarcasm
-                    final String uName = name;
-                    final ArrayList<Image> effectivelyFinalIconArray = dataHandler.getBadges();
+                    final String displayName = dataHandler.getDisplayName();
+                    final String uName = dataHandler.getUserName();
+                    final String uColor = dataHandler.getUserNameColor();
+                    final ArrayList<Node> msgData = dataHandler.getPrivMsgData();
+                    final ArrayList<Image> badges = dataHandler.getBadges();
 
                     Platform.runLater(() ->
                     {
-                        userList.addUser(dataHandler.getUserNameForPRIVMSG(), effectivelyFinalIconArray);
-                        displayMessage(dataHandler.getPrivMsgData(), dataHandler.getUserNameColor(),
-                            uName, effectivelyFinalIconArray);
+                        userList.addUser(uName, badges);
+                        displayMessage(msgData, uColor, displayName, badges);
                     });
                 }
                 else if (dataHandler.isUserStateUpdate())
                 {
                     log("User state update received");
+
                     // Compute all the stuffs
-                    dataHandler.getBadges(); // Don't forget to actually get the badges, not just their signatures
                     clientBadgeSignatures = dataHandler.getBadgeSignatures();
                     clientColorValue = dataHandler.getUserNameColor();
                     clientsDisplayName = dataHandler.getDisplayName();
                     hasUserState = true;
+
+                    // Compute all the stuffs
+                    final String channel = dataHandler.getChannel();
+                    final ArrayList<Image> badges = dataHandler.getBadges();
+
+                    if (!connectedToChannel)
+                    {
+                        Platform.runLater(() -> displayMessage("> Connected to channel: " + channel));
+                        connectedToChannel = true;
+                    }
+
+                    Platform.runLater(() -> userList.addUser(client.getNick(), badges));
                 }
-                else if (dataHandler.isSucessfulConnectionNotification())
+                else if (dataHandler.isSuccessfulConnectMsg())
                 {
                     if (!connectionMessageReceived)
                     {
@@ -354,34 +338,47 @@ public class WildChat extends Application
                 }
                 else if (dataHandler.isLocalMessage())
                 {
-                    log("Incorrect user credentials entered");
+                    log("Incorrect user credentials entered"); // only local message sent out at this time
                     Platform.runLater(() -> displayMessage("Incorrect login credentials!"));
                     credentialsAvailable = false;
+                }
+                else if (dataHandler.isRoomstateData())
+                {
+                    log("Roomstate data received");
+
+                    // Compute all the stuffs
+                    final String channel = dataHandler.getChannel();
+
+                    if (!connectedToChannel)
+                    {
+                        Platform.runLater(() -> displayMessage("> Connected to channel: " + channel));
+                        connectedToChannel = true;
+                    }
                 }
                 else if (dataHandler.isUserJoinMsg())
                 {
                     log("User join channel received");
+
                     // Compute all the stuffs
-                    dataHandler.getUserName();
-                    dataHandler.getChannel();
-                    Platform.runLater(() ->
+                    final String uName = dataHandler.getUserName();
+                    final String channel = dataHandler.getChannel();
+
+                    if (!connectedToChannel)
                     {
-                        userList.addUser(dataHandler.getUserName());
-                    });
+                        Platform.runLater(() -> displayMessage("> Connected to channel: " + channel));
+                        connectedToChannel = true;
+                    }
+
+                    Platform.runLater(() -> userList.addUser(uName));
                 }
                 else if (dataHandler.isUserLeaveMsg())
                 {
                     log("User left channel received");
-                    // Compute all the stuffs
-                    dataHandler.getUserName();
-                    dataHandler.getChannel();
-                    Platform.runLater(() ->
-                    {
-                        userList.removeUser(dataHandler.getUserName());
-                    });
-                }
 
-                Runtime.getRuntime().gc(); // get rid of all those StringBuilder ghosts!
+                    // Compute all the stuffs
+                    final String uName = dataHandler.getUserName();
+                    Platform.runLater(() -> userList.removeUser(uName));
+                }
             })
         );
 
@@ -421,10 +418,7 @@ public class WildChat extends Application
             String channel = streamerField.getText();
 
             if (connectedToChannel)
-            {
-                log("Disconnecting from " + session.getChannel());
-                sendMessage("PART " + session.getChannel());
-            }
+                disconnectFromChannel();
 
             if (! channel.substring(0, 1).contains("#"))
                 channel = "#" + channel;
@@ -436,7 +430,6 @@ public class WildChat extends Application
 
             session.setChannel(channel);
             displayMessage("> Joining channel " + session.getChannel());
-            connectedToChannel = true;
             secondaryStage.close();
         });
 
@@ -534,6 +527,24 @@ public class WildChat extends Application
         secondaryStage.showAndWait();
     }
     // END TODO
+
+    private void disconnectFromChannel()
+    {
+        if (connectedToChannel)
+        {
+            log("Disconnecting from " + session.getChannel());
+            sendMessage("PART " + session.getChannel());
+            displayMessage("> Leaving channel " + session.getChannel());
+            clientBadgeSignatures.clear();
+            userList.removeAllUsers();
+            hasUserState = false;
+            connectedToChannel = false;
+        }
+        else
+        {
+            displayMessage("> You are not connected to a channel!");
+        }
+    }
 
     private void sendMessage(String message) { socketRunner.sendMessage(message.trim()); }
 

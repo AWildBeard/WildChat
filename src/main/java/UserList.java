@@ -19,17 +19,8 @@ public class UserList extends VBox
             return;
         }
 
-        HBox userContainer = new HBox();
-        Label usernameLabel = new Label(userName);
-        userContainer.setSpacing(3.0);
-
-        if (badges != null)
-            for (Image img : badges)
-                userContainer.getChildren().add(new ImageView(img));
-
-        userContainer.getChildren().add(usernameLabel);
-
-        this.getChildren().add(userContainer);
+        addUser(userName);
+        addBadgesToUser(userName, badges);
     }
 
     public void addUser(String userName)
@@ -58,14 +49,15 @@ public class UserList extends VBox
     public void addBadgesToUser(String userToSearchFor, ArrayList<Image> badges)
     {
         Integer indexOfUsersHBox;
-        Label userName = null;
-        HBox alreadyLoadedHBox;
-        HBox newHBox = new HBox();
-        newHBox.setSpacing(3.0);
 
         // find the users hbox and test if the user exists
         if ((indexOfUsersHBox = indexOfUsersHBox(userToSearchFor)) != null)
         {
+            Label userName = null;
+            HBox alreadyLoadedHBox;
+            HBox newHBox = new HBox();
+            newHBox.setSpacing(3.0);
+
             alreadyLoadedHBox = (HBox) this.getChildren().get(indexOfUsersHBox);
 
             // Reuse the users name
@@ -89,11 +81,20 @@ public class UserList extends VBox
 
             this.getChildren().add(indexOfUsersHBox, newHBox);
         }
+        else
+            addUser(userToSearchFor, badges);
     }
 
     public void removeUser(String userToSearchFor)
     {
         if (indexOfUsersHBox(userToSearchFor) != null)
+        {
             this.getChildren().remove(indexOfUsersHBox(userToSearchFor).intValue());
+        }
+    }
+
+    public void removeAllUsers()
+    {
+        this.getChildren().clear();
     }
 }

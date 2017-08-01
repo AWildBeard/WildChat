@@ -19,28 +19,21 @@ import static logUtils.Logger.log;
 
 public class HandleData
 {
-    private String data = null,
-        userName = null,
-        userNameForPRIVMSG,
-        userChannel = null,
-        displayName = null,
-        userNameColor = null,
-        clientID = "fb7mlvnq5fgh7isjrx0ce14f27f6nq",
-        emoteDownloadURL = "http://static-cdn.jtvnw.net/emoticons/v1/%s/1.0";
+    private final String CLIENT_ID = "fb7mlvnq5fgh7isjrx0ce14f27f6nq",
+        EMOTE_DOWNLOAD_URL = "http://static-cdn.jtvnw.net/emoticons/v1/%s/1.0";
+
+    private String data = null;
 
     private boolean isPrivMsg = false,
         isUserJoinMsg = false,
         isUserLeaveMsg = false,
-        isSucessfulConnectionNotification = false,
+        isSuccessfulConnectMsg = false,
         isUserStateUpdate = false,
         hasEmoteData = false,
+        isRoomstateData = false,
         isLocalMessage = false;
 
     private char[] rawData;
-
-    private StringBuilder sb = new StringBuilder();
-
-    private ArrayList<Node> privMsgData = null;
 
     public HandleData(String data)
     {
@@ -62,7 +55,7 @@ public class HandleData
             isPrivMsg = false;
             isUserJoinMsg = data.contains("JOIN");
             isUserLeaveMsg = data.contains("PART");
-            isSucessfulConnectionNotification = data.contains("001") || data.contains("376") || data.contains("002");
+            isSuccessfulConnectMsg = data.contains("001") || data.contains("376") || data.contains("002");
             isUserStateUpdate = data.contains("USERSTATE");
             isLocalMessage = data.substring(0, 4).contains("EEE");
         }
@@ -71,7 +64,9 @@ public class HandleData
     // PRIVMSG and USERSTATE
     public ArrayList<Node> getPrivMsgData()
     {
-        if ((isPrivMsg || isUserStateUpdate) && privMsgData == null)
+        ArrayList<Node> privMsgData = null;
+
+        if ((isPrivMsg || isUserStateUpdate))
         {
             privMsgData = new ArrayList<>();
             // Grab the message
@@ -96,7 +91,7 @@ public class HandleData
                     if (c == ':')
                     {
                         emoteIDs.add(sb.toString());
-                        sb = new StringBuilder();
+                        sb.setLength(0);
                         indexOfEmoteID++;
                         continue;
                     }
@@ -105,20 +100,20 @@ public class HandleData
                         emoteIndex.add(sb.toString());
                         emoteIDs.add(emoteIDs.get(indexOfEmoteID));
                         countOfEmoteIndex++;
-                        sb = new StringBuilder();
+                        sb.setLength(0);
                         continue;
                     }
                     if (c == '/')
                     {
                         emoteIndex.add(sb.toString());
                         countOfEmoteIndex++;
-                        sb = new StringBuilder();
+                        sb.setLength(0);
                         continue;
                     }
                     if (c == ';')
                     {
                         emoteIndex.add(sb.toString());
-                        sb = new StringBuilder();
+                        sb.setLength(0);
                         countOfEmoteIndex++;
                         break;
                     }
@@ -134,7 +129,7 @@ public class HandleData
                         if (! Emotes.hasEmote(id))
                         {
                             log("Getting emote: " + id);
-                            Emotes.cacheEmote(new Image(new URL(String.format(emoteDownloadURL, id)).openStream()), id);
+                            Emotes.cacheEmote(new Image(new URL(String.format(EMOTE_DOWNLOAD_URL, id)).openStream()), id);
                         }
                         else
                             log("Already have emote: " + id);
@@ -145,7 +140,7 @@ public class HandleData
                     log(e.getMessage());
                 }
 
-                sb = new StringBuilder();
+                sb.setLength(0);
 
                 int[][] emoteIndexes = new int[countOfEmoteIndex][2];
                 int firstNumber = 0;
@@ -163,13 +158,13 @@ public class HandleData
                         if (c == '-')
                         {
                             emoteIndexes[firstNumber][0] = Integer.parseInt(sb.toString());
-                            sb = new StringBuilder();
+                            sb.setLength(0);
                             continue;
                         }
                         if (index == indexGroupLength)
                         {
                             emoteIndexes[firstNumber][1] = Integer.parseInt(sb.toString()); // + 1 to include last char
-                            sb = new StringBuilder();
+                            sb.setLength(0);
                         }
                     }
                     firstNumber++;
@@ -179,7 +174,7 @@ public class HandleData
 
                 // Add the words to the final message and all emotes too.
                 int lasChar = rawMessage.length - 1;
-                boolean emoteDetected = false;
+                boolean emoteDetected;
                 for (int index = 0 ; index < rawMessage.length ; index++)
                 {
                     emoteDetected = false;
@@ -201,15 +196,13 @@ public class HandleData
 
                     if (c != 32 && !emoteDetected)
                     {
-                        log("Letter detected...");
                         sb.append(c);
                     }
 
                     if ((c == 32 || index == lasChar) && !emoteDetected)
                     {
-                        log("Space or lastChar detected, adding word to final message..");
                         privMsgData.add(new Label(sb.toString()));
-                        sb = new StringBuilder();
+                        sb.setLength(0);
                     }
                 }
                 log("Finished emote operation..");
@@ -218,6 +211,7 @@ public class HandleData
             {
                 int lastChar = rawMessage.length;
                 int index = 0;
+                StringBuilder sb = new StringBuilder();
                 for (char c : rawMessage)
                 {
                     index++;
@@ -229,7 +223,7 @@ public class HandleData
                     if (c == 32 || index == lastChar)
                     {
                         privMsgData.add(new Label(sb.toString()));
-                        sb = new StringBuilder();
+                        sb.setLength(0); // Clear the string builder
                     }
                 }
             }
@@ -240,9 +234,12 @@ public class HandleData
 
     public String getUserNameColor()
     {
-        if ((isPrivMsg || isUserStateUpdate) && userNameColor == null)
+        String userNameColor = null;
+
+        if ((isPrivMsg || isUserStateUpdate))
         {
             int categoryStart = 0, endOfCategoryLocation = 0;
+            StringBuilder sb = new StringBuilder();
 
             // Test for color
             categoryStart = data.indexOf("color=") + 6; // Always 6. Length of color declaration
@@ -250,17 +247,13 @@ public class HandleData
 
             if (! (categoryStart == endOfCategoryLocation))
             { // Message has color data
-                sb = new StringBuilder(); // Clear the StringBuilder
                 for (int count = categoryStart ; count <= endOfCategoryLocation ; count++)
                 {
-                    if (count == endOfCategoryLocation) // The end of the color field
-                    {
-                        userNameColor = sb.toString();
-                        break;
-                    }
+                    if (count != endOfCategoryLocation)
+                        sb.append(rawData[count]);
 
                     else
-                        sb.append(rawData[count]);
+                        userNameColor = sb.toString();
                 }
             }
 
@@ -272,14 +265,16 @@ public class HandleData
 
     public String getDisplayName()
     {
-        if ((isPrivMsg || isUserStateUpdate) && displayName == null)
+        String displayName = null;
+
+        if ((isPrivMsg || isUserStateUpdate))
         {
             // Grab the displayName
-            int categoryStart = data.indexOf("display-name=") + 13;
-            int endOfCategoryLocation = data.indexOf(';', categoryStart);
+            int categoryStart = data.indexOf("display-name=") + 13,
+                endOfCategoryLocation = data.indexOf(';', categoryStart);
 
             if (categoryStart == endOfCategoryLocation)
-                return null;
+                return getUserName();
 
             displayName = data.substring(categoryStart, endOfCategoryLocation);
             log("Calculated displayName: " + displayName);
@@ -297,74 +292,26 @@ public class HandleData
         {
             badges = new ArrayList<>();
 
-            // Test for badges
-            int categoryStart = data.indexOf("badges=") + 7; // Always 7. Length of badges declaration
-            int endOfCategoryLocation = data.indexOf(';', categoryStart);
-
-            if (! (categoryStart == endOfCategoryLocation))
-            { // Message has badges data
-                sb = new StringBuilder(); // Clear the StringBuilder
-                for (int count = categoryStart; count <= endOfCategoryLocation; count++)
+            for (String badge : getBadgeSignatures())
+            try
+            {
+                if (Badges.hasBadge(badge))
                 {
-                    // End of badges
-                    if (count == endOfCategoryLocation)
-                    {
-                        log("No badges found");
-                        break;
-                    }
-
-                    // Found badge name end and beginning of badge version
-                    if (rawData[count] == '/')
-                    {
-                        // End of badge name found
-                        String badgeNameString = sb.toString();
-
-                        if (! Badges.getValidBadges().contains(badgeNameString))
-                        {
-                            log("Invalid badge found: " + badgeNameString);
-                            sb = new StringBuilder();
-                            continue;
-                        }
-
-                        count++; // Skip the /
-                        sb = new StringBuilder(); // Clear the StringBuilder
-
-                        while (rawData[count] != ',' && rawData[count] != ';')
-                            sb.append(rawData[count++]);
-
-                        String badgeVersion = sb.toString();
-
-                        String key = badgeNameString + "/" + badgeVersion;
-                        String value = Badges.getValue(key);
-
-                        try
-                        {
-                            if (Badges.hasBadge(key))
-                            {
-                                log("Already have key: " + key);
-                                badges.add(Badges.getBadge(key));
-                            }
-                            else
-                            {
-                                log("Do not have key: " + key);
-                                Image badge = new Image(new URL(value).openStream());
-                                Badges.cacheBadge(badge, key);
-                                badges.add(badge);
-                            }
-                        }
-                        catch (IOException z)
-                        {
-                            log("Didn't find icon for " + key);
-                        }
-
-                        sb = new StringBuilder(); // Clear the StringBuilder
-                    }
-                    else
-                        sb.append(rawData[count]);
+                    log("Already have key: " + badge);
+                    badges.add(Badges.getBadge(badge));
+                }
+                else
+                {
+                    log("Do not have key: " + badge);
+                    Image badgeImage = new Image(new URL(Badges.getValue(badge)).openStream());
+                    Badges.cacheBadge(badgeImage, badge);
+                    badges.add(badgeImage);
                 }
             }
-
-            log("Calculated badges");
+            catch (IOException z)
+            {
+                log("Didn't find icon for " + badge);
+            }
         }
 
         return badges;
@@ -377,6 +324,7 @@ public class HandleData
         if (isPrivMsg || isUserStateUpdate)
         {
             badgeSignatures = new ArrayList<>();
+            StringBuilder sb = new StringBuilder();
 
             // Test for badges
             int categoryStart = data.indexOf("badges=") + 7; // Always 7. Length of badges declaration
@@ -398,12 +346,12 @@ public class HandleData
 
                         if (! Badges.getValidBadges().contains(badgeNameString))
                         {
-                            sb = new StringBuilder();
+                            sb.setLength(0);
                             continue;
                         }
 
                         count++; // Skip the /
-                        sb = new StringBuilder(); // Clear the StringBuilder
+                        sb.setLength(0); // Clear the StringBuilder
 
                         while (rawData[count] != ',' && rawData[count] != ';')
                             sb.append(rawData[count++]);
@@ -412,7 +360,7 @@ public class HandleData
 
                         badgeSignatures.add(badgeNameString + "/" + badgeVersion);
 
-                        sb = new StringBuilder(); // Clear the StringBuilder
+                        sb.setLength(0); // Clear the StringBuilder
                     }
                     else
                         sb.append(rawData[count]);
@@ -424,25 +372,21 @@ public class HandleData
 
         return badgeSignatures;
     }
-
-    public String getUserNameForPRIVMSG()
-    {
-        if (isPrivMsg && userNameForPRIVMSG == null)
-        {
-            int nameStart = data.indexOf(":", data.indexOf("user-type="));
-            int endOfNameLocation = data.indexOf("!", nameStart);
-            userNameForPRIVMSG = data.substring(nameStart + 1, endOfNameLocation);
-            log("Calculated userName: " + userNameForPRIVMSG);
-        }
-
-        return userNameForPRIVMSG;
-    }
     // END TODO
 
     // PART and JOIN
     public String getUserName()
     {
-        if ((isUserJoinMsg || isUserLeaveMsg) && userName == null)
+        String userName = null;
+
+        if (isPrivMsg)
+        {
+            int nameStart = data.indexOf(":", data.indexOf("user-type="));
+            int endOfNameLocation = data.indexOf("!", nameStart);
+            userName = data.substring(nameStart + 1, endOfNameLocation);
+            log("Calculated userName: " + userName);
+        }
+        else if ((isUserJoinMsg || isUserLeaveMsg))
         {
             int nameStart = (data.indexOf(':'));
             int endOfNameLocation = (data.indexOf('!', nameStart));
@@ -455,7 +399,9 @@ public class HandleData
 
     public String getChannel()
     {
-        if ((isUserJoinMsg || isUserLeaveMsg) && userChannel == null)
+        String userChannel = null;
+
+        if ((isUserJoinMsg || isUserLeaveMsg || isRoomstateData))
         {
             int channelStart = data.indexOf('#');
             userChannel = data.substring(channelStart, data.length() - 1);
@@ -484,7 +430,7 @@ public class HandleData
                 if (c == ',' || c == ';')
                 {
                     emoteSetIds.add(sb.toString());
-                    sb = new StringBuilder();
+                    sb.setLength(0);
                 }
             }
 
@@ -497,7 +443,7 @@ public class HandleData
                     HttpClient client = new DefaultHttpClient();
                     HttpUriRequest request = new HttpGet(url.toURI());
                     request.addHeader("Accept:", "application/vnd.twitchtv.v5+json");
-                    request.addHeader("Client-ID:", clientID);
+                    request.addHeader("Client-ID:", CLIENT_ID);
                     HttpResponse response = client.execute(request);
                     log(response.toString());
                 }
@@ -517,9 +463,11 @@ public class HandleData
 
     public boolean isUserLeaveMsg() { return isUserLeaveMsg; }
 
-    public boolean isSucessfulConnectionNotification() { return isSucessfulConnectionNotification; }
+    public boolean isSuccessfulConnectMsg() { return isSuccessfulConnectMsg; }
 
     public boolean isUserStateUpdate() { return isUserStateUpdate; }
 
     public boolean isLocalMessage() { return isLocalMessage; }
+
+    public boolean isRoomstateData() { return isRoomstateData; }
 }
