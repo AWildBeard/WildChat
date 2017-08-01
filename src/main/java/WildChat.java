@@ -429,6 +429,8 @@ public class WildChat extends Application
             if (! channel.substring(0, 1).contains("#"))
                 channel = "#" + channel;
 
+            channel = channel.toLowerCase();
+
             log("Connecting to channel " + channel);
             sendMessage("JOIN " + channel);
 
