@@ -5,37 +5,14 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class Logger
 {
-    private static boolean shouldLog = false,
-        threadStarted = false;
-
-    private static LinkedBlockingQueue<String> messages = new LinkedBlockingQueue<>();
+    private static boolean shouldLog = false;
 
     private Logger() {}
 
     public static synchronized void log(String message)
     {
-        if (! threadStarted && shouldLog)
-        {
-            new Thread(() ->
-            {
-                while (true)
-                {
-                    if (messages.size() > 0)
-                    {
-                        try
-                        {
-                            System.out.println(getTime() + " " + messages.take());
-                        }
-                        catch (InterruptedException e)
-                        {
-                            log(e.getMessage());
-                        }
-                    }
-                }
-            }).start();
-            threadStarted = true;
-        }
-        messages.add(message);
+        if (shouldLog)
+            System.out.println(getTime() + " " + message);
     }
 
     public static void setShouldLog(boolean log) { shouldLog = log; }
