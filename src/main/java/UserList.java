@@ -25,6 +25,9 @@ public class UserList extends VBox
 
     public void addUser(String userName)
     {
+        if (indexOfUsersHBox(userName) != null)
+            return;
+
         HBox userContainter = new HBox();
         Label userNameLabel = new Label(userName);
 
@@ -87,14 +90,10 @@ public class UserList extends VBox
 
     public void removeUser(String userToSearchFor)
     {
-        if (indexOfUsersHBox(userToSearchFor) != null)
-        {
-            this.getChildren().remove(indexOfUsersHBox(userToSearchFor).intValue());
-        }
+        Integer index;
+        if ((index = indexOfUsersHBox(userToSearchFor)) != null)
+            this.getChildren().remove(index.intValue());
     }
 
-    public void removeAllUsers()
-    {
-        this.getChildren().clear();
-    }
+    public void removeAllUsers() { this.getChildren().clear(); }
 }
