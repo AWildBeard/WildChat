@@ -14,6 +14,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 import static logUtils.Logger.log;
 
@@ -256,6 +257,27 @@ public class HandleData
                         userNameColor = sb.toString();
                 }
             }
+            else
+            { // Message does not have color data
+                final String RED = "#d60027", BLUE = "#0066cc", GREEN = "#15c39a";
+
+                Random rng = new Random();
+
+                switch (rng.nextInt(3))
+                {
+                    case 1:
+                        userNameColor = RED;
+                        break;
+                    case 2:
+                        userNameColor = BLUE;
+                        break;
+                    case 3:
+                        userNameColor = GREEN;
+                        break;
+                    default:
+                        userNameColor = GREEN;
+                }
+            }
 
             log("Calculated displayColor: " + userNameColor);
         }
@@ -365,9 +387,8 @@ public class HandleData
                     else
                         sb.append(rawData[count]);
                 }
+                log("Calculated badge signatures");
             }
-
-            log("Calculated badge signatures");
         }
 
         return badgeSignatures;

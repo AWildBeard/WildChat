@@ -306,14 +306,14 @@ public class WildChat extends Application
                     log("User state update received");
 
                     // Compute all the stuffs
+                    final String channel = dataHandler.getChannel();
+                    final ArrayList<Image> badges = dataHandler.getBadges();
+
+                    // Compute all the stuffs
                     clientBadgeSignatures = dataHandler.getBadgeSignatures();
                     clientColorValue = dataHandler.getUserNameColor();
                     clientsDisplayName = dataHandler.getDisplayName();
                     hasUserState = true;
-
-                    // Compute all the stuffs
-                    final String channel = dataHandler.getChannel();
-                    final ArrayList<Image> badges = dataHandler.getBadges();
 
                     if (!connectedToChannel)
                     {
@@ -332,7 +332,8 @@ public class WildChat extends Application
                         Platform.runLater(() ->
                         {
                             displayMessage("> Connected to twitch.tv");
-                            displayMessage("> Please join a channel!");
+                            if (session.getChannel() == null)
+                                displayMessage("> Please join a channel!");
                         });
                     }
                 }
@@ -351,8 +352,8 @@ public class WildChat extends Application
 
                     if (!connectedToChannel)
                     {
-                        Platform.runLater(() -> displayMessage("> Connected to channel: " + channel));
                         connectedToChannel = true;
+                        Platform.runLater(() -> displayMessage("> Connected to channel: " + channel));
                     }
                 }
                 else if (dataHandler.isUserJoinMsg())
@@ -365,8 +366,8 @@ public class WildChat extends Application
 
                     if (!connectedToChannel)
                     {
-                        Platform.runLater(() -> displayMessage("> Connected to channel: " + channel));
                         connectedToChannel = true;
+                        Platform.runLater(() -> displayMessage("> Connected to channel: " + channel));
                     }
 
                     Platform.runLater(() -> userList.addUser(uName));
