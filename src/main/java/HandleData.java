@@ -123,24 +123,16 @@ public class HandleData
                 }
 
                 // Get emotes in the message from twitch
-                try
+                for (String id : emoteIDs)
                 {
-                    for (String id : emoteIDs)
+                    if (! Emotes.hasEmote(id))
                     {
-                        if (! Emotes.hasEmote(id))
-                        {
-                            log("Getting emote: " + id);
-                            Emotes.cacheEmote(new Image(new URL(String.format(EMOTE_DOWNLOAD_URL, id)).openStream()), id);
-                        }
-                        else
-                            log("Already have emote: " + id);
+                        log("Getting emote: " + id);
+                        Emotes.cacheEmote(new Image(String.format(EMOTE_DOWNLOAD_URL, id), true), id);
                     }
+                    else
+                        log("Already have emote: " + id);
                 }
-                catch (IOException e)
-                {
-                    log(e.getMessage());
-                }
-
                 sb.setLength(0);
 
                 int[][] emoteIndexes = new int[countOfEmoteIndex][2];
@@ -314,25 +306,21 @@ public class HandleData
         {
             badges = new ArrayList<>();
 
-            for (String badge : getBadgeSignatures())
-            try
+        for (String badge : getBadgeSignatures())
+            if (Badges.hasBadge(badge))
             {
-                if (Badges.hasBadge(badge))
+                log("Already have key: " + badge);
+                badges.add(Badges.getBadge(badge));
+            }
+            else
+            {
+                log("Do not have key: " + badge);
+                if (Badges.getValue(badge) != null)
                 {
-                    log("Already have key: " + badge);
-                    badges.add(Badges.getBadge(badge));
-                }
-                else
-                {
-                    log("Do not have key: " + badge);
-                    Image badgeImage = new Image(new URL(Badges.getValue(badge)).openStream());
+                    Image badgeImage = new Image(Badges.getValue(badge), true);
                     Badges.cacheBadge(badgeImage, badge);
                     badges.add(badgeImage);
                 }
-            }
-            catch (IOException z)
-            {
-                log("Didn't find icon for " + badge);
             }
         }
 

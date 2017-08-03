@@ -1,10 +1,7 @@
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
-
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import static logUtils.Logger.*;
@@ -15,25 +12,19 @@ public class TwitchConnect implements Runnable
 
     private DataOutputStream os;
 
-    /* Data to hold the 'Data' from the Twitch IRC. Is implemented as a StringProperty so other classes can listen
-     * for changes to the data so they know when to grab it. Normally this would be a problem if the same message is
-     * received twice from twitch. But twitch PROHIBITS sending the same message twice in a row in within 30 seconds
-     * so this is not really a problem. It also works really really well as it IS thread safe.
-     */
-    private StringProperty data = new SimpleStringProperty();
-
     // Basically a first in first out array list that is also thread safe :D
     private static LinkedBlockingQueue<String> messages = new LinkedBlockingQueue<>();
 
     // The client using the program. Contains the user name and OAUTH token.
     private final Client client;
 
+    private static PipedOutputStream pipedOutputStream = new PipedOutputStream();
+
+    private static PipedInputStream pipedInputStream = new PipedInputStream();
+
     private boolean acceptingMessages = true;
 
-    public TwitchConnect(Client client)
-    {
-        this.client = client;
-    }
+    public TwitchConnect(Client client) { this.client = client; }
 
     private final Thread messageSender = new Thread(() ->
     {
@@ -69,6 +60,38 @@ public class TwitchConnect implements Runnable
         }
     });
 
+    private final Thread messageProcessor = new Thread(() ->
+    {
+        DataInputStream inputStream = null;
+        ExecutorService executor = Executors.newCachedThreadPool();
+        try
+        {
+            pipedInputStream.connect(pipedOutputStream);
+            inputStream = new DataInputStream(pipedInputStream);
+        }
+        catch(IOException e)
+        {
+            log(e.getMessage());
+        }
+
+        if (inputStream != null)
+        {
+            while (true)
+            {
+                String data = null;
+                try
+                {
+                    data = inputStream.readUTF();
+                } catch (IOException e)
+                {
+                    log(e.getMessage());
+                }
+                executor.execute(new DataProcessor(data));
+            }
+        }
+
+    });
+
     public void run()
     {
         log("Starting messageReceiver service");
@@ -84,12 +107,17 @@ public class TwitchConnect implements Runnable
         // Start message Sender Thread
         log("Starting messageSender service");
         messageSender.start();
+        log("Starting messageProcessor service");
+        messageProcessor.start();
+
+        DataOutputStream outputStream = new DataOutputStream(pipedOutputStream);
 
         log("messageReceiver service running");
         while (true)
         {
             // Don't add the received data directly to the StringProperty. Check it for relevance before adding.
             String tmpData = String.valueOf(BasicIO.readLine(is));
+            log("Really got: " + tmpData);
 
             if (tmpData.substring(0, 4).equals("PING"))
             {
@@ -98,12 +126,26 @@ public class TwitchConnect implements Runnable
             else if (tmpData.equals(":tmi.twitch.tv NOTICE * :Login authentication failed"))
             {
                 acceptingMessages = false;
-                data.setValue("EEE :Incorrect login information!");
+                try
+                {
+                    outputStream.writeUTF("EEE: Incorrect login information!");
+                }
+                catch (IOException e)
+                {
+                    log(e.getMessage());
+                }
                 messages.clear();
             }
             else
             {
-                data.setValue(tmpData);
+                try
+                {
+                    outputStream.writeUTF(tmpData);
+                }
+                catch (IOException e)
+                {
+                    log(e.getMessage());
+                }
             }
         }
     }
@@ -158,17 +200,5 @@ public class TwitchConnect implements Runnable
                 System.out.println(e.getMessage());
             }
         }
-    }
-
-    // Get the data property so we can listen for changes.
-    public StringProperty getDataProperty()
-    {
-        return data;
-    }
-
-    // Get the current data from Twitch IRC stored in this class. Safely.
-    public String getData()
-    {
-        return data.getValueSafe();
     }
 }

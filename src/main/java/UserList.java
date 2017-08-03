@@ -13,6 +13,9 @@ public class UserList extends VBox
 
     public void addUser(String userName, ArrayList<Image> badges)
     {
+        if (badges == null)
+            addUser(userName);
+
         if (indexOfUsersHBox(userName) != null)
         {
             addBadgesToUser(userName, badges);
