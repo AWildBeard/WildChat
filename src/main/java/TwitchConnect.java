@@ -29,7 +29,7 @@ public class TwitchConnect implements Runnable
     private final Thread messageSender = new Thread(() ->
     {
         log("messageSender running");
-        while (true)
+        while (! Thread.currentThread().isInterrupted())
         {
             try
             {
@@ -38,7 +38,7 @@ public class TwitchConnect implements Runnable
             }
             catch (InterruptedException y)
             {
-                System.out.println(y.getMessage());
+                log(y.getMessage());
             }
 
             if (messages.size() < 1)
@@ -49,13 +49,16 @@ public class TwitchConnect implements Runnable
 
             try
             {
-                log("messageSender sending: " + messages.peek());
-                os.write(messages.poll().getBytes());
-                os.flush();
+                if (acceptingMessages)
+                {
+                    log("messageSender sending: " + messages.peek());
+                    os.write(messages.poll().getBytes());
+                    os.flush();
+                }
             }
             catch (IOException y)
             {
-                System.out.println(y.getMessage());
+                log(y.getMessage());
             }
         }
     });
@@ -63,7 +66,7 @@ public class TwitchConnect implements Runnable
     private final Thread messageProcessor = new Thread(() ->
     {
         DataInputStream inputStream = null;
-        ExecutorService executor = Executors.newCachedThreadPool();
+        ExecutorService executor = Executors.newFixedThreadPool(10);
         try
         {
             pipedInputStream.connect(pipedOutputStream);
@@ -76,7 +79,7 @@ public class TwitchConnect implements Runnable
 
         if (inputStream != null)
         {
-            while (true)
+            while (! Thread.currentThread().isInterrupted())
             {
                 String data = null;
                 try
@@ -113,11 +116,10 @@ public class TwitchConnect implements Runnable
         DataOutputStream outputStream = new DataOutputStream(pipedOutputStream);
 
         log("messageReceiver service running");
-        while (true)
+        while (! Thread.currentThread().isInterrupted())
         {
             // Don't add the received data directly to the StringProperty. Check it for relevance before adding.
             String tmpData = String.valueOf(BasicIO.readLine(is));
-            log("Really got: " + tmpData);
 
             if (tmpData.substring(0, 4).equals("PING"))
             {
@@ -147,6 +149,12 @@ public class TwitchConnect implements Runnable
                     log(e.getMessage());
                 }
             }
+        }
+
+        if (Thread.currentThread().isInterrupted())
+        {
+            messageSender.interrupt();
+            messageProcessor.interrupt();
         }
     }
 

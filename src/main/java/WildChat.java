@@ -45,15 +45,13 @@ public class WildChat extends Application
 
     private Stage primaryStage = null;
 
-    private TwitchConnect socketRunner = null;
+    private Thread baseConnectionThread = null;
 
-    private ExecutorService executor = Executors.newCachedThreadPool();
+    private TwitchConnect socketRunner = null;
 
     static Client client = null;
 
     static Session session = new Session();
-
-    private BorderPane titleBar = new BorderPane();
 
     private GridPane mainContent = new GridPane();
 
@@ -63,7 +61,7 @@ public class WildChat extends Application
             settings = new Menu("Settings");
 
     private MenuItem connect = new MenuItem("Connect"),
-            uiSettings = new MenuItem("UI"),
+            uiSettings = new MenuItem("Customize UI"),
             disconnect = new MenuItem("Disconnect");
 
     private static ScrollPane messagePane = new ScrollPane(),
@@ -74,26 +72,6 @@ public class WildChat extends Application
     private Text title = new Text("Wild Chat");
 
     private static VBox messageHolder = new VBox();
-
-    private HBox windowControlsHolder = new HBox(7.0);
-
-    private Circle closeButton = new Circle(),
-            maximizeButton = new Circle(),
-            minimizeButton = new Circle(),
-            closeButtonSealer = new Circle(),
-            maximizeButtonSealer = new Circle(),
-            minimizeButtonSealer = new Circle();
-
-    private StackPane closeButtonStackPane = new StackPane(),
-            maximizeButtonStackPane = new StackPane(),
-            minimizeButtonStackPane = new StackPane();
-
-    private Line closeLine1 = new Line(),
-            closeLine2 = new Line(),
-            minimizeLine1 = new Line();
-
-    private Polygon maximizeTriangle1 = new Polygon(),
-            maximizeTriangle2 = new Polygon();
 
     private TextField messageField = new TextField();
 
@@ -110,10 +88,6 @@ public class WildChat extends Application
                              BasicIO.getEnvVars("APPDATA") + "/" : BasicIO.getEnvVars("HOME") + "/",
                          credentialFile = dotDirLocation + filePrefix + credentials;
 
-    private static double mouseDragStartX, mouseDragStartY, maximizedWindowFactor;
-
-    private boolean windowMaximizedOperation = false, wasMaxOp = false;
-
     static volatile boolean connected = false,
         connectionMessageReceived = false,
         connectedToChannel = false,
@@ -122,14 +96,13 @@ public class WildChat extends Application
 
     public WildChat()
     {
-        boolean canAccessCredentials = false,
+        boolean canAccessCredentials,
                 debug = true;
 
         if (launchArgs.length > 0 && launchArgs[0].equals("--no-debug"))
             debug = false;
 
         setShouldLog(debug);
-
 
         log("Testing read/write on " + credentialFile);
         if (! FileUtil.canReadWrite(credentialFile))
@@ -165,7 +138,6 @@ public class WildChat extends Application
     public void stop()
     {
         connected = false;
-        executor.shutdownNow();
         log("ShutDown");
         System.exit(0);
     }
@@ -173,6 +145,7 @@ public class WildChat extends Application
     @Override
     public void start(Stage primaryStage)
     {
+        log("Stage start");
         this.primaryStage = primaryStage;
 
         log((! credentialsAvailable) ? "No credentials available, showing input fields" : "");
@@ -185,49 +158,57 @@ public class WildChat extends Application
             System.exit(1);
         }
 
+        log("Setting up networking");
         socketRunner = new TwitchConnect(client);
 
-        closeButton.setStyle("-fx-fill: red");
-        closeButton.setRadius(8.5);
-        closeButtonSealer.setStyle("-fx-fill: transparent");
-        closeButtonSealer.setRadius(8.5);
-        maximizeButton.setStyle("-fx-fill: limegreen");
-        maximizeButton.setRadius(8.5);
-        maximizeButtonSealer.setStyle("-fx-fill: transparent");
-        maximizeButtonSealer.setRadius(8.5);
-        minimizeButton.setStyle("-fx-fill: orange");
-        minimizeButton.setRadius(8.5);
-        minimizeButtonSealer.setStyle("-fx-fill: transparent");
-        minimizeButtonSealer.setRadius(8.5);
-        closeLine1.setStartX(-4.0);
-        closeLine1.setStartY(4.0);
-        closeLine1.setEndX(4.0);
-        closeLine1.setEndY(-4.0);
-        closeLine2.setStartX(-4.0);
-        closeLine2.setStartY(-4.0);
-        closeLine2.setEndX(4.0);
-        closeLine2.setEndY(4.0);
-        // triangle stuff here
-        minimizeLine1.setStartX(-4.0);
-        minimizeLine1.setStartY(0.0);
-        minimizeLine1.setEndX(4.0);
-        minimizeLine1.setEndY(0.0);
+        log("initializing UI");
+        initUI();
 
-        messagePane.setPannable(false);
-        connections.getItems().addAll(connect, disconnect);
-        settings.getItems().add(uiSettings);
-        menuBar.getMenus().addAll(connections, settings);
+        log("Setting scene");
+        Scene root = new Scene(mainContent, 650, 400);
+
+        this.primaryStage.setScene(root);
+        this.primaryStage.setTitle("WildChat");
+
+        // CTRL+Q exit application
+        this.primaryStage.getScene().getAccelerators().put(KeyCombination.keyCombination("CTRL+Q"),() -> stop());
+
+        log("Showing window");
+        this.primaryStage.show();
+
+        log("Starting networking");
+        baseConnectionThread = new Thread(socketRunner);
+        baseConnectionThread.start();
+        log("Networking started");
+        displayMessage("> Connecting to twitch.tv...");
+    }
+
+    private void initUI()
+    {
+        setVisibleProperties();
+        setInteractions();
+        addNodesToParents();
+    }
+
+    private void setVisibleProperties()
+    {
+        log("Initializing container stuff");
+        // Container stuff
         menuBar.setMaxHeight(22.0);
         messageField.setPromptText("Message");
+        BorderPane.setMargin(title, new Insets(7.0, 0, 0, 0));
+        VBox.setMargin(userList, new Insets(4, 0, 4, 4));
         userListPane.setMaxWidth(250.0);
         userListPane.setPrefWidth(175.0);
         userListPane.setMinWidth(100.0);
+        userList.setSpacing(3.0);
         messageHolder.setSpacing(3.0);
         messagePane.setPrefWidth(450.0);
         messagePane.setMinWidth(100.0);
         messagePane.setMaxWidth(Double.MAX_VALUE);
         messagePane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         messagePane.setFitToWidth(true);
+        messagePane.setPannable(false);
         messagePane.vvalueProperty().bind(messageHolder.heightProperty());
         column1Constraints.setHgrow(Priority.ALWAYS);
         column1Constraints.setHalignment(HPos.LEFT);
@@ -239,105 +220,30 @@ public class WildChat extends Application
         row1Constraints.setVgrow(Priority.NEVER);
         row1Constraints.setValignment(VPos.TOP);
         row1Constraints.setFillHeight(false);
-        row2Constraints.setVgrow(Priority.NEVER);
-        row2Constraints.setValignment(VPos.TOP);
-        row2Constraints.setFillHeight(false);
-        row3Constraints.setVgrow(Priority.ALWAYS);
+        row2Constraints.setVgrow(Priority.ALWAYS);
+        row2Constraints.setValignment(VPos.BOTTOM);
+        row2Constraints.setFillHeight(true);
+        row3Constraints.setVgrow(Priority.NEVER);
         row3Constraints.setValignment(VPos.BOTTOM);
         row3Constraints.setFillHeight(true);
-        mainContent.getColumnConstraints().addAll(column1Constraints, column2Constraints);
-        mainContent.getRowConstraints().addAll(row1Constraints, row2Constraints, row3Constraints);
-        titleBar.setMinHeight(22.0);
 
-        messagePane.setContent(messageHolder);
-        userListPane.setContent(userList);
-        userList.setSpacing(3.0);
-        titleBar.setCenter(title);
-        titleBar.setRight(windowControlsHolder);
-        windowControlsHolder.setAlignment(Pos.CENTER_RIGHT);
-        windowControlsHolder.getChildren().addAll(minimizeButtonStackPane, maximizeButtonStackPane, closeButtonStackPane);
-        closeButtonStackPane.getChildren().addAll(closeButton, closeLine1, closeLine2, closeButtonSealer);
-        maximizeButtonStackPane.getChildren().addAll(maximizeButton, maximizeTriangle1, maximizeTriangle2, maximizeButtonSealer);
-        minimizeButtonStackPane.getChildren().addAll(minimizeButton, minimizeLine1, minimizeButtonSealer);
-        BorderPane.setMargin(title, new Insets(7.0, 0, 0, 0));
-        BorderPane.setMargin(windowControlsHolder, new Insets(3.5, 3.5, 0, 0));
-        VBox.setMargin(userList, new Insets(4, 0, 4, 4));
-        mainContent.add(titleBar, 0, 0, 2, 1);
-        mainContent.add(menuBar, 0, 1, 2, 1);
-        mainContent.add(messagePane, 0, 2);
-        mainContent.add(userListPane, 1, 2);
-        mainContent.add(messageField, 0, 3, 2, 1);
-
-        Scene root = new Scene(mainContent, 650, 400);
-
+        log("Populating the message holder");
         for (int count = 0 ; count <= 125 ; count++)
-        {
             messageHolder.getChildren().add(count, new Text(" "));
-        }
+    }
 
+    private void setInteractions()
+    {
+        log("Setting interactions");
+        log("Setting main stage interactions");
+        this.primaryStage.setOnCloseRequest(e -> log("Primary Stage Close"));
+
+        log("Setting disconnect/ connect interactions");
         disconnect.setOnAction(e -> disconnectFromChannel());
 
         connect.setOnAction(e -> showConnectWindow());
 
-        closeButtonSealer.setOnMouseClicked(e ->
-        {
-            Platform.exit();
-        });
-
-        minimizeButtonSealer.setOnMouseClicked(e ->
-        {
-            this.primaryStage.setIconified(true);
-        });
-
-        maximizeButtonSealer.setOnMouseClicked(e ->
-        {
-            if (this.primaryStage.isMaximized())
-                this.primaryStage.setMaximized(false);
-
-            else
-                this.primaryStage.setMaximized(true);
-        });
-
-        titleBar.setOnMousePressed(e ->
-        {
-            if (e.getButton() != MouseButton.MIDDLE)
-            {
-                windowMaximizedOperation = false;
-                mouseDragStartX = e.getX();
-                mouseDragStartY = e.getY();
-                if (this.primaryStage.isMaximized())
-                {
-                    maximizedWindowFactor = titleBar.getScene().getWindow().getWidth();
-                    windowMaximizedOperation = true;
-                }
-            }
-        });
-        titleBar.setOnMouseDragged(e ->
-        {
-            if (e.getButton() != MouseButton.MIDDLE)
-            {
-                if (windowMaximizedOperation)
-                {
-                    this.primaryStage.setMaximized(false);
-                    wasMaxOp = true;
-                }
-                else
-                {
-                    titleBar.getScene().getWindow().setX(e.getScreenX() - mouseDragStartX);
-                    wasMaxOp = false;
-                }
-                if (wasMaxOp)
-                {
-                    double orig = mouseDragStartX; // Don't wan't to change this.
-                    mouseDragStartX =
-                        (titleBar.getScene().getWindow().getWidth() / maximizedWindowFactor) * mouseDragStartX;
-                    titleBar.getScene().getWindow().setX(e.getScreenX() - mouseDragStartX);
-                    mouseDragStartX = orig;
-                }
-                titleBar.getScene().getWindow().setY(e.getScreenY() - mouseDragStartY);
-            }
-        });
-
+        log("setting message field interactions");
         messageField.setOnKeyPressed(event ->
         {
             if (event.getCode().equals(KeyCode.ENTER))
@@ -348,7 +254,7 @@ public class WildChat extends Application
                 {
                     if (connectedToChannel)
                     {
-                        sendMessage("PRIVMSG " + session.getChannel() + " :" + message);
+                        sendMessage("PRIVMSG " + Session.getChannel() + " :" + message);
 
                         if (! hasUserState)
                         {
@@ -389,8 +295,9 @@ public class WildChat extends Application
                                     messageNodes.add(new Label(sb.toString()));
                             }
 
-                            displayMessage(messageNodes, session.getClientColor(),
-                                session.getClientDisplayName(), clientImageBadges);
+                            displayMessage(DataProcessor.formatMessage(
+                                clientImageBadges, session.getClientDisplayName(),
+                                session.getClientColor(), messageNodes));
                         }
                     }
                     else
@@ -401,22 +308,22 @@ public class WildChat extends Application
                 }
             }
         });
+    }
 
-        this.primaryStage.setScene(root);
-        this.primaryStage.setTitle("WildChat");
-        this.primaryStage.setOnCloseRequest(e ->
-        {
-            log("Primary Stage Close");
-        });
-        this.primaryStage.initStyle(StageStyle.UNDECORATED);
-        this.primaryStage.show();
-
-        // CTRL+Q exit application
-        this.primaryStage.getScene().getAccelerators().put(KeyCombination.keyCombination("CTRL+Q"),() -> stop());
-
-        executor.execute(socketRunner);
-        displayMessage("> Connecting to twitch.tv...");
-
+    private void addNodesToParents()
+    {
+        log("Adding nodes to parents");
+        connections.getItems().addAll(connect, disconnect);
+        settings.getItems().add(uiSettings);
+        menuBar.getMenus().addAll(connections, settings);
+        mainContent.getColumnConstraints().addAll(column1Constraints, column2Constraints);
+        mainContent.getRowConstraints().addAll(row1Constraints, row2Constraints, row3Constraints);
+        messagePane.setContent(messageHolder);
+        userListPane.setContent(userList);
+        mainContent.add(menuBar, 0, 0, 2, 1);
+        mainContent.add(messagePane, 0, 1);
+        mainContent.add(userListPane, 1, 1);
+        mainContent.add(messageField, 0, 2, 2, 1);
     }
 
     private void showConnectWindow()
@@ -447,11 +354,11 @@ public class WildChat extends Application
 
             channel = channel.toLowerCase();
 
-            log("Connecting to channel " + channel);
+            log("Connecting to " + channel);
             sendMessage("JOIN " + channel);
 
             session.setChannel(channel);
-            displayMessage("> Joining channel " + session.getChannel());
+            displayMessage("> Joining channel " + Session.getChannel() + "...");
             secondaryStage.close();
         });
 
@@ -461,12 +368,13 @@ public class WildChat extends Application
                 confirmButton.fire();
         });
 
+
         Scene root = new Scene(contentHolder, 400, 300);
 
         secondaryStage.setScene(root);
         secondaryStage.setTitle("Connect");
+        secondaryStage.initStyle(StageStyle.UTILITY);
         secondaryStage.show();
-
     }
 
     // TODO: Implement
@@ -542,10 +450,11 @@ public class WildChat extends Application
         {
             if (client == null || ! client.isReady())
             {
-                log("Credential window exit");
+                log("Credential window exit w/o client being initialized!");
                 System.exit(1);
             }
         });
+        secondaryStage.initStyle(StageStyle.UTILITY);
         secondaryStage.showAndWait();
     }
     // END TODO
@@ -554,9 +463,9 @@ public class WildChat extends Application
     {
         if (connectedToChannel)
         {
-            log("Disconnecting from " + session.getChannel());
-            sendMessage("PART " + session.getChannel());
-            displayMessage("> Leaving channel " + session.getChannel());
+            log("Disconnecting from " + Session.getChannel());
+            sendMessage("PART " + Session.getChannel());
+            displayMessage("> Leaving channel " + Session.getChannel());
             session = new Session();
             userList.removeAllUsers();
             hasUserState = false;
@@ -570,51 +479,22 @@ public class WildChat extends Application
 
     private void sendMessage(String message) { socketRunner.sendMessage(message.trim()); }
 
-    static synchronized void displayMessage(String message)
+    static void displayMessage(String message)
     {
         Label newMessage = new Label(message);
         newMessage.setWrapText(true);
+        newMessage.prefWidthProperty().bind(messagePane.widthProperty());
 
         messageHolder.getChildren().remove(0);
         messageHolder.getChildren().add(125, newMessage);
     }
 
-    static synchronized void displayMessage(ArrayList<Node> message, String color, String username, ArrayList<Image> badges)
+    static void displayMessage(FlowPane holder)
     {
-        if (message == null)
-        {
-            log("Got no message for displayMessage!");
-            return;
-        }
-
-        FlowPane flowPane = new FlowPane();
-        Label userName = null;
-
-        flowPane.setOrientation(Orientation.HORIZONTAL);
-        flowPane.setHgap(4.0);
-        flowPane.prefWidthProperty().bind(messagePane.widthProperty());
-
-        flowPane.getChildren().add(new Label(">"));
-
-        if (badges != null)
-            for (Image icon : badges)
-                flowPane.getChildren().add(new ImageView(icon));
-
-        if (username != null)
-        {
-            userName = new Label(username);
-            flowPane.getChildren().addAll(userName, new Label(":"));
-        }
-
-        if (color != null && username != null)
-            userName.setTextFill(Paint.valueOf(color));
-
-
-        for (Node node : message)
-            flowPane.getChildren().add(node);
+        holder.prefWidthProperty().bind(messagePane.widthProperty());
 
         messageHolder.getChildren().remove(0);
-        messageHolder.getChildren().add(125, flowPane);
+        messageHolder.getChildren().add(125, holder);
     }
 
     public static void main(String[] args)

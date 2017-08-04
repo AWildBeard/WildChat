@@ -1,6 +1,11 @@
 import javafx.application.Platform;
+import javafx.geometry.Orientation;
 import javafx.scene.Node;
+import javafx.scene.control.Label;
 import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.FlowPane;
+import javafx.scene.paint.Paint;
 
 import java.util.ArrayList;
 
@@ -23,6 +28,9 @@ public class DataProcessor implements Runnable
 
         if (dataHandler.isPrivMsg())
         {
+            if (! WildChat.connectedToChannel)
+                return;
+
             log("PRIVMSG received");
 
             // Compute all the stuffs
@@ -32,10 +40,12 @@ public class DataProcessor implements Runnable
             final ArrayList<Node> msgData = dataHandler.getPrivMsgData();
             final ArrayList<Image> badges = dataHandler.getBadges();
 
+            final FlowPane holder = formatMessage(badges, displayName, uColor, msgData);
+
             Platform.runLater(() ->
             {
                 WildChat.userList.addUser(uName, badges);
-                WildChat.displayMessage(msgData, uColor, displayName, badges);
+                WildChat.displayMessage(holder);
             });
         }
         else if (dataHandler.isUserStateUpdate())
@@ -43,7 +53,6 @@ public class DataProcessor implements Runnable
             log("User state update received");
 
             // Compute all the stuffs
-            final String channel = dataHandler.getChannel();
             final ArrayList<Image> badges = dataHandler.getBadges();
 
             // Compute all the stuffs
@@ -61,7 +70,7 @@ public class DataProcessor implements Runnable
                 WildChat.connectionMessageReceived = true;
                 log("Connected to twitch.tv");
 
-                Platform.runLater(() -> WildChat.displayMessage("> Connected to twitch.tv..."));
+                Platform.runLater(() -> WildChat.displayMessage("> Connected to twitch.tv!"));
             }
         }
         else if (dataHandler.isLocalMessage())
@@ -74,6 +83,7 @@ public class DataProcessor implements Runnable
         else if (dataHandler.isRoomstateData())
         {
             log("Roomstate data received");
+
         }
         else if (dataHandler.isUserJoinMsg())
         {
@@ -81,7 +91,11 @@ public class DataProcessor implements Runnable
 
             // Compute all the stuffs
             final String uName = dataHandler.getUserName();
-            WildChat.connectedToChannel = true;
+            if (! WildChat.connectedToChannel)
+            {
+                WildChat.connectedToChannel = true;
+                Platform.runLater(() -> WildChat.displayMessage("> Connected to " + Session.getChannel() + "!"));
+            }
 
             Platform.runLater(() -> WildChat.userList.addUser(uName));
         }
@@ -93,5 +107,34 @@ public class DataProcessor implements Runnable
             final String uName = dataHandler.getUserName();
             Platform.runLater(() -> WildChat.userList.removeUser(uName));
         }
+    }
+
+    public static FlowPane formatMessage(ArrayList<Image> badges, String displayName, String color, ArrayList<Node> msgData)
+    {
+        FlowPane holder = new FlowPane();
+        Label userName = null;
+
+        holder.setOrientation(Orientation.HORIZONTAL);
+        holder.setHgap(4.0);
+
+        holder.getChildren().add(new Label(">"));
+
+        if (badges != null)
+            for (Image icon : badges)
+                holder.getChildren().add(new ImageView(icon));
+
+        if (displayName != null)
+        {
+            userName = new Label(displayName);
+            holder.getChildren().addAll(userName, new Label(":"));
+        }
+
+        if (color != null && displayName != null)
+            userName.setTextFill(Paint.valueOf(color));
+
+        for (Node node : msgData)
+            holder.getChildren().add(node);
+
+        return holder;
     }
 }

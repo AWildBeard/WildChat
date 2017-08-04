@@ -2,25 +2,31 @@ import java.util.ArrayList;
 
 public class Session
 {
-    private String channel = null, clientColor = null, clientDisplayName = null;
+    private static String channel = null;
+    private String clientColor = null, clientDisplayName = null;
 
     private ArrayList<String> badgeSignatures = null;
 
-    public Session(){}
+    public Session() { clearData(); }
 
-    public String getChannel() { return channel; }
+    public static String getChannel() { return channel; }
 
-    public ArrayList<String> getBadgeSignatures() { return this.badgeSignatures; }
+    public ArrayList<String> getBadgeSignatures() { return badgeSignatures; }
 
-    public String getClientColor() { return this.clientColor; }
+    public String getClientColor() { return clientColor; }
 
-    public String getClientDisplayName() { return this.clientDisplayName; }
+    public String getClientDisplayName() { return clientDisplayName; }
 
-    public void setChannel(String channel) { this.channel = channel;}
+    public void setChannel(String newChannel) { channel = newChannel;}
 
-    public void setBadgeSignatures(ArrayList<String> badgeSignatures) { this.badgeSignatures = badgeSignatures; }
+    public void setBadgeSignatures(ArrayList<String> newBadgeSigs) { badgeSignatures = newBadgeSigs; }
 
-    public void setClientColor(String clientColor) { this.clientColor = clientColor; }
+    public void setClientColor(String newClientColor) { clientColor = newClientColor; }
 
-    public void setClientDisplayName(String clientDisplayName) { this.clientDisplayName = clientDisplayName; }
+    public void setClientDisplayName(String newClientDisplayName) { clientDisplayName = newClientDisplayName; }
+
+    public static void clearData()
+    {
+        channel = null;
+    }
 }
