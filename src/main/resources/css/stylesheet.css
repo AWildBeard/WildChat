@@ -1,0 +1,4 @@
+.scroll-bar:horizontal, .scroll-bar:vertical
+{
+    -fx-background-color: transparent
+}

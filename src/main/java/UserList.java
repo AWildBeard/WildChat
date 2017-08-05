@@ -1,14 +1,18 @@
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Paint;
+import javafx.scene.text.Font;
 
 import java.util.ArrayList;
 
 public class UserList extends VBox
 {
+
     public UserList() {}
 
     public void addUser(String userName, ArrayList<Image> badges)
@@ -33,6 +37,8 @@ public class UserList extends VBox
 
         HBox userContainter = new HBox();
         Label userNameLabel = new Label(userName);
+        userNameLabel.setFont(Font.font(WildChat.uiFont));
+        userNameLabel.setTextFill(Paint.valueOf(WildChat.textFill));
 
         userContainter.getChildren().add(userNameLabel);
         userContainter.setSpacing(3.0);
@@ -62,7 +68,8 @@ public class UserList extends VBox
             Label userName = null;
             HBox alreadyLoadedHBox;
             HBox newHBox = new HBox();
-            newHBox.setSpacing(3.0);
+            newHBox.setAlignment(Pos.CENTER_LEFT);
+            newHBox.setSpacing(WildChat.uiFont * 0.33);
 
             alreadyLoadedHBox = (HBox) this.getChildren().get(indexOfUsersHBox);
 
@@ -76,7 +83,9 @@ public class UserList extends VBox
             }
 
             for (Image img : badges)
+            {
                 newHBox.getChildren().add(new ImageView(img));
+            }
 
             if (userName == null)
                 throw new IllegalArgumentException("Failed to find username despite finding it earlier");

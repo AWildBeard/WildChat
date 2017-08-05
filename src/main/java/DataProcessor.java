@@ -6,6 +6,7 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.paint.Paint;
+import javafx.scene.text.Font;
 
 import java.util.ArrayList;
 
@@ -14,6 +15,10 @@ import static logUtils.Logger.log;
 public class DataProcessor implements Runnable
 {
     private String data;
+
+    private static Paint messageColor = Paint.valueOf(WildChat.textFill);
+
+    private static Font font = new Font(WildChat.messageFontSize);
 
     public DataProcessor(String dataToProcess) { this.data = dataToProcess; }
 
@@ -112,12 +117,16 @@ public class DataProcessor implements Runnable
     public static FlowPane formatMessage(ArrayList<Image> badges, String displayName, String color, ArrayList<Node> msgData)
     {
         FlowPane holder = new FlowPane();
-        Label userName = null;
+        Label userName = null, messagePreAppen = new Label(">"), messageSeperator = new Label(":");
+
+        messagePreAppen.setFont(font);
+        messagePreAppen.setTextFill(messageColor);
+        messageSeperator.setFont(font);
+        messageSeperator.setTextFill(messageColor);
 
         holder.setOrientation(Orientation.HORIZONTAL);
-        holder.setHgap(4.0);
-
-        holder.getChildren().add(new Label(">"));
+        holder.setHgap(WildChat.messageFontSize * 0.33);
+        holder.getChildren().add(messagePreAppen);
 
         if (badges != null)
             for (Image icon : badges)
@@ -126,14 +135,23 @@ public class DataProcessor implements Runnable
         if (displayName != null)
         {
             userName = new Label(displayName);
-            holder.getChildren().addAll(userName, new Label(":"));
+            if (color != null)
+                userName.setTextFill(Paint.valueOf(color));
+            else
+                userName.setTextFill(messageColor);
+            userName.setFont(font);
+            holder.getChildren().addAll(userName, messageSeperator);
         }
 
-        if (color != null && displayName != null)
-            userName.setTextFill(Paint.valueOf(color));
-
         for (Node node : msgData)
+        {
+            if (node instanceof Label)
+            {
+                ((Label) node).setFont(font);
+                ((Label) node).setTextFill(messageColor);
+            }
             holder.getChildren().add(node);
+        }
 
         return holder;
     }

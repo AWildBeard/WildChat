@@ -56,7 +56,7 @@ public class HandleData
             isPrivMsg = false;
             isUserJoinMsg = data.contains("JOIN");
             isUserLeaveMsg = data.contains("PART");
-            isSuccessfulConnectMsg = data.contains("001") || data.contains("376") || data.contains("002");
+            isSuccessfulConnectMsg = data.contains("001");
             isUserStateUpdate = data.contains("USERSTATE");
             isLocalMessage = data.substring(0, 4).contains("EEE");
         }
