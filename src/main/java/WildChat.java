@@ -15,7 +15,9 @@
 import com.sun.javafx.font.freetype.HBGlyphLayout;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.StringProperty;
+import javafx.beans.value.ObservableDoubleValue;
 import javafx.beans.value.ObservableStringValue;
 import javafx.beans.value.ObservableValue;
 import javafx.geometry.*;
@@ -25,6 +27,7 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCombination;
+import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Paint;
 import javafx.scene.shape.Circle;
@@ -57,6 +60,8 @@ public class WildChat extends Application
     static Client client = null;
 
     static Session session = new Session();
+
+    private SplitPane mainContentHolder = new SplitPane();
 
     private GridPane mainContent = new GridPane();
 
@@ -220,6 +225,9 @@ public class WildChat extends Application
         log("Showing window");
         this.primaryStage.show();
 
+        // call post shown ui props
+        initPostUI();
+
         log("Starting networking");
         baseConnectionThread = new Thread(socketRunner);
         baseConnectionThread.start();
@@ -234,6 +242,35 @@ public class WildChat extends Application
         addNodesToParents();
     }
 
+    private void initPostUI()
+    {
+        Node divider = mainContentHolder.lookup(".split-pane-divider");
+        Node scrollBar = messagePane.lookup(".scroll-bar");
+
+        if (divider != null)
+            divider.setStyle("-fx-background-color: " + uiAccentColor + ";");
+
+        if (scrollBar != null)
+        {
+            Node thumb = scrollBar.lookup(".thumb");
+            Node track = scrollBar.lookup(".track");
+            Node incrementButton = scrollBar.lookup(".increment");
+            Node decrementButton = scrollBar.lookup(".decrement");
+
+            if (thumb != null)
+                thumb.setStyle("-fx-background-color: " + uiAccentColor + ";");
+
+            if (track != null)
+                track.setStyle("-fx-background-color: " + backgroundColor + ";");
+
+            if (incrementButton != null)
+                incrementButton.setStyle("-fx-background-color: " + backgroundColor + ";");
+
+            if (decrementButton != null)
+                decrementButton.setStyle("-fx-background-color: " + backgroundColor + ";");
+        }
+    }
+
     private void setVisibleProperties()
     {
         log("Initializing container stuff");
@@ -241,7 +278,7 @@ public class WildChat extends Application
         menuBar.setMaxHeight(22.0);
         messageField.setPromptText("Message");
         VBox.setMargin(userList, new Insets(4, 0, 4, 4));
-        userListPane.setMaxWidth(250.0);
+        userListPane.setMaxWidth(450.0);
         userListPane.setPrefWidth(175.0);
         userListPane.setMinWidth(100.0);
         userList.setSpacing(3.0);
@@ -272,6 +309,7 @@ public class WildChat extends Application
         row3Constraints.setValignment(VPos.BOTTOM);
         row3Constraints.setFillHeight(true);
         menuBar.setSpacing(uiFont * 0.33);
+        mainContentHolder.setDividerPosition(0, 0.75);
         connectButton.setStyle("-fx-font-size: " + uiFont + ";" +
             "-fx-text-fill: " + textFill + ";" +
             "-fx-background-color: " + uiAccentColor + ";");
@@ -286,13 +324,14 @@ public class WildChat extends Application
             "-fx-background-color: " + backgroundColor + ";" +
             "-fx-border-color: " + uiAccentColor + ";");
         menuBar.setStyle("-fx-background-color: " + uiAccentColor + ";");
-        messagePane.setStyle("-fx-background-color: " + uiAccentColor + ";" +
+        messagePane.setStyle("-fx-background-color: " + backgroundColor + ";" +
             "-fx-background: " + backgroundColor + ";" +
             "-fx-background-insets: 0, 1;");
-        userListPane.setStyle("-fx-background-color: " + uiAccentColor + ";" +
+        userListPane.setStyle("-fx-background-color: " + backgroundColor + ";" +
             "-fx-background: " + backgroundColor + ";" +
             "-fx-background-insets: 0;");
         mainContent.setStyle("-fx-background-color: " + backgroundColor + ";");
+        mainContentHolder.setStyle("-fx-background-color: " + uiAccentColor + ";");
 
         root.getStylesheets().add("css/stylesheet.css");
 
@@ -435,9 +474,9 @@ public class WildChat extends Application
         mainContent.getRowConstraints().addAll(row1Constraints, row2Constraints, row3Constraints);
         messagePane.setContent(messageHolder);
         userListPane.setContent(userList);
+        mainContentHolder.getItems().setAll(messagePane, userListPane);
         mainContent.add(menuBar, 0, 0, 2, 1);
-        mainContent.add(messagePane, 0, 1);
-        mainContent.add(userListPane, 1, 1);
+        mainContent.add(mainContentHolder, 0, 1, 2, 1);
         mainContent.add(messageField, 0, 2, 2, 1);
     }
 
@@ -647,7 +686,7 @@ public class WildChat extends Application
         VBox controller = new VBox();
         Button closeButton = new Button("Exit"),
                applyButton = new Button("Apply"),
-               resetButton = new Button("Reset"),
+               resetButton = new Button("Reset To Defaults"),
                shareUISettingsButton = new Button("Share Presets"),
                importUISettingsButton = new Button("Import Presets"),
                colorPickerButton = new Button("Color Picker");
@@ -687,44 +726,44 @@ public class WildChat extends Application
             "-fx-stroke-width: 3px;" +
             "-fx-stroke: derive(" + highlightTextColor + ", 100%);");
 
-        messageFontInput.setMaxWidth(40.0);
-        messageFontInput.setAlignment(Pos.CENTER_RIGHT);
+        messageFontInput.setMaxWidth(2.85 * uiFont);
+        messageFontInput.setAlignment(Pos.CENTER_LEFT);
         messageFontInput.setStyle("-fx-font-size: " + uiFont + ";" +
             "-fx-text-fill: " + textFill + ";" +
             "-fx-background-color: " + backgroundColor + ";" +
             "-fx-border-color: " + uiAccentColor + ";");
-        uiFontInput.setMaxWidth(40.0);
-        uiFontInput.setAlignment(Pos.CENTER_RIGHT);
+        uiFontInput.setMaxWidth(2.85 * uiFont);
+        uiFontInput.setAlignment(Pos.CENTER_LEFT);
         uiFontInput.setStyle("-fx-font-size: " + uiFont + ";" +
             "-fx-text-fill: " + textFill + ";" +
             "-fx-background-color: " + backgroundColor + ";" +
             "-fx-border-color: " + uiAccentColor + ";");
-        textColorInput.setMaxWidth(85.0);
-        textColorInput.setAlignment(Pos.CENTER_RIGHT);
+        textColorInput.setMaxWidth(6.1 * uiFont);
+        textColorInput.setAlignment(Pos.CENTER_LEFT);
         textColorInput.setStyle("-fx-font-size: " + uiFont + ";" +
             "-fx-text-fill: " + textFill + ";" +
             "-fx-background-color: " + backgroundColor + ";" +
             "-fx-border-color: " + uiAccentColor + ";");
-        backgroundColorInput.setMaxWidth(85.0);
-        backgroundColorInput.setAlignment(Pos.CENTER_RIGHT);
+        backgroundColorInput.setMaxWidth(6.1 * uiFont);
+        backgroundColorInput.setAlignment(Pos.CENTER_LEFT);
         backgroundColorInput.setStyle("-fx-font-size: " + uiFont + ";" +
             "-fx-text-fill: " + textFill + ";" +
             "-fx-background-color: " + backgroundColor + ";" +
             "-fx-border-color: " + uiAccentColor + ";");
-        highlighColorInput.setMaxWidth(85.0);
-        highlighColorInput.setAlignment(Pos.CENTER_RIGHT);
+        highlighColorInput.setMaxWidth(6.1 * uiFont);
+        highlighColorInput.setAlignment(Pos.CENTER_LEFT);
         highlighColorInput.setStyle("-fx-font-size: " + uiFont + ";" +
             "-fx-text-fill: " + textFill + ";" +
             "-fx-background-color: " + backgroundColor + ";" +
             "-fx-border-color: " + uiAccentColor + ";");
-        uiAccentColorInput.setMaxWidth(85.0);
-        uiAccentColorInput.setAlignment(Pos.CENTER_RIGHT);
+        uiAccentColorInput.setMaxWidth(6.1 * uiFont);
+        uiAccentColorInput.setAlignment(Pos.CENTER_LEFT);
         uiAccentColorInput.setStyle("-fx-font-Size: " + uiFont + ";" +
                 "-fx-text-fill: " + textFill + ";" +
                 "-fx-background-color: " + backgroundColor + ";" +
                 "-fx-border-color: " + uiAccentColor + ";");
-        highlightTextColorInput.setMaxWidth(85.0);
-        highlightTextColorInput.setAlignment(Pos.CENTER_RIGHT);
+        highlightTextColorInput.setMaxWidth(6.1 * uiFont);
+        highlightTextColorInput.setAlignment(Pos.CENTER_LEFT);
         highlightTextColorInput.setStyle("-fx-font-size: " + uiFont + ";" +
             "-fx-text-fill: " + textFill + ";" +
             "-fx-background-color: " + backgroundColor + ";" +
@@ -827,13 +866,26 @@ public class WildChat extends Application
         });
         resetButton.setOnAction(e ->
         {
-            messageFontInput.setText(String.valueOf((int) messageFontSize));
-            uiFontInput.setText(String.valueOf((int) uiFont));
-            textColorInput.setText(textFill);
-            backgroundColorInput.setText(backgroundColor);
-            highlighColorInput.setText(highlightColor);
-            uiAccentColorInput.setText(uiAccentColor);
-            highlightTextColorInput.setText(highlightTextColor);
+            UISettings newSettings = new UISettings();
+
+            try
+            {
+                ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(uiSettingsFile));
+                os.writeObject(newSettings);
+                os.close();
+            }
+            catch (IOException y)
+            {
+                log(y.getMessage());
+            }
+
+            messageFontInput.setText(String.valueOf((int) newSettings.getMessageFontSize()));
+            uiFontInput.setText(String.valueOf((int) newSettings.getUiFont()));
+            textColorInput.setText(newSettings.getTextFill());
+            backgroundColorInput.setText(newSettings.getBackgroundColor());
+            highlighColorInput.setText(newSettings.getHighlightColor());
+            uiAccentColorInput.setText(newSettings.getUIAccentColor());
+            highlightTextColorInput.setText(newSettings.getHighlightTextColor());
         });
 
         shareUISettingsButton.setStyle("-fx-font-size: " + uiFont + ";" +
@@ -1040,7 +1092,7 @@ public class WildChat extends Application
             {
                 ((StringProperty)obs).setValue(newVal);
                 if (newVal.length() == 7)
-                    textColorCircle.setFill(Paint.valueOf(newVal));
+                    backgroundColorCircle.setFill(Paint.valueOf(newVal));
             }
             else
             {
@@ -1053,7 +1105,7 @@ public class WildChat extends Application
             {
                 ((StringProperty)obs).setValue(newVal);
                 if (newVal.length() == 7)
-                    textColorCircle.setFill(Paint.valueOf(newVal));
+                    highlighColorCircle.setFill(Paint.valueOf(newVal));
             }
             else
             {
@@ -1066,7 +1118,7 @@ public class WildChat extends Application
             {
                 ((StringProperty)obs).setValue(newVal);
                 if (newVal.length() == 7)
-                    textColorCircle.setFill(Paint.valueOf(newVal));
+                    uiAccentColorCircle.setFill(Paint.valueOf(newVal));
             }
             else
             {
@@ -1079,7 +1131,7 @@ public class WildChat extends Application
             {
                 ((StringProperty)obs).setValue(newVal);
                 if (newVal.length() == 7)
-                    textColorCircle.setFill(Paint.valueOf(newVal));
+                    highlightTextColorCircle.setFill(Paint.valueOf(newVal));
             }
             else
             {
@@ -1123,7 +1175,7 @@ public class WildChat extends Application
 
     static void displayMessage(FlowPane holder)
     {
-        holder.prefWidthProperty().bind(messagePane.widthProperty());
+        holder.maxWidthProperty().bind(messagePane.widthProperty());
 
         messageHolder.getChildren().remove(0);
         messageHolder.getChildren().add(125, holder);
