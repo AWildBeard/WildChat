@@ -66,6 +66,8 @@ public class DataProcessor implements Runnable
             WildChat.session.setClientDisplayName(dataHandler.getDisplayName());
             WildChat.hasUserState = true;
 
+            dataHandler.getEmoteCodesAndIDs();
+
             Platform.runLater(() -> WildChat.userList.addUser(WildChat.client.getNick(), badges));
         }
         else if (dataHandler.isSuccessfulConnectMsg())

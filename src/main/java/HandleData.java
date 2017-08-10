@@ -1,3 +1,7 @@
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
@@ -5,12 +9,10 @@ import javafx.scene.image.ImageView;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -435,29 +437,53 @@ public class HandleData
 
             for (char c : rawEmoteSet)
             {
-                sb.append(c);
                 if (c == ',' || c == ';')
                 {
                     emoteSetIds.add(sb.toString());
                     sb.setLength(0);
                 }
+                else
+                    sb.append(c);
             }
 
             try
             {
                 for (String emoteID : emoteSetIds)
                 {
-                    log("Get link: " + String.format("http://api.twitch.tv/kraken/chat/emoticon_images?emotesets=%s", emoteID));
-                    URL url = new URL(String.format("http://api.twitch.tv/kraken/chat/emoticon_images?emotesets=%s", emoteID));
-                    HttpClient client = new DefaultHttpClient();
-                    HttpUriRequest request = new HttpGet(url.toURI());
-                    request.addHeader("Accept:", "application/vnd.twitchtv.v5+json");
-                    request.addHeader("Client-ID:", CLIENT_ID);
-                    HttpResponse response = client.execute(request);
-                    log(response.toString());
+                    String urlString = String.format(
+                        "https://api.twitch.tv/kraken/chat/emoticon_images?emotesets=%s", emoteID);
+                    log("Get link: " + urlString);
+                    HttpGet getRequest = new HttpGet(urlString);
+                    getRequest.addHeader("Accept", "application/vnd.twitchtv.v5+json");
+                    getRequest.addHeader("Client-ID", CLIENT_ID);
+                    HttpClient client = HttpClients.createSystem();
+                    HttpResponse response = client.execute(getRequest);
+                    String jsonToLookAt = EntityUtils.toString(response.getEntity());
+                    Gson jsonParser = new Gson();
+
+                    JsonObject jsonObject = jsonParser.fromJson(jsonToLookAt, JsonObject.class);
+
+                    JsonObject innerObject = jsonObject.getAsJsonObject("emoticon_sets");
+
+                    JsonArray emoteJsonArray = innerObject.getAsJsonArray(emoteID);
+
+                    JsonElement innerArray;
+                    int count = 0;
+                    int size = emoteJsonArray.size() - 1;
+                    while (count <= size)
+                    {
+                        innerArray = emoteJsonArray.get(count);
+                        JsonObject keyValuePair = innerArray.getAsJsonObject();
+                        log("ID: " + keyValuePair.get("id") + " Value: " + keyValuePair.get("code"));
+                        count++;
+                    }
+
+                    log("... Whew");
+
                 }
             }
-            catch(IOException | URISyntaxException e)
+
+            catch(IOException e)
             {
                 log(e.getMessage());
             }
@@ -465,6 +491,21 @@ public class HandleData
         }
         return map;
     }
+
+    /*
+                    while (idIndex > 0)
+                    {
+                        String value = jsonToLookAt.substring(valueIndex, endOfValue);
+                        String id = jsonToLookAt.substring(idIndex, endOfId);
+                        log("ID: " + id + " VALUE: " + value);
+                        map.put(value, id);
+                        log("ID index value: " + idIndex);
+                        idIndex = jsonToLookAt.indexOf("\"id\":", idIndex) + 5;
+                        endOfId = jsonToLookAt.indexOf(",", idIndex);
+                        valueIndex = jsonToLookAt.indexOf("\"code\":", idIndex) + 8;
+                        endOfValue = jsonToLookAt.indexOf("\"", valueIndex);
+                    }
+    */
 
     public boolean isUserJoinMsg() { return isUserJoinMsg; }
 
