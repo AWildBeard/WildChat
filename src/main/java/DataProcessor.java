@@ -66,7 +66,9 @@ public class DataProcessor implements Runnable
             WildChat.session.setClientDisplayName(dataHandler.getDisplayName());
             WildChat.hasUserState = true;
 
-            dataHandler.getEmoteCodesAndIDs();
+            log("Map Set: " + WildChat.session.isMapSet());
+            if (! WildChat.session.isMapSet()) // No spam twitch. Twitch no likey
+                WildChat.session.setEmoteCodesAndIDs(dataHandler.getEmoteCodesAndIDs());
 
             Platform.runLater(() -> WildChat.userList.addUser(WildChat.client.getNick(), badges));
         }
@@ -101,7 +103,9 @@ public class DataProcessor implements Runnable
             if (! WildChat.connectedToChannel)
             {
                 WildChat.connectedToChannel = true;
-                Platform.runLater(() -> WildChat.displayMessage("> Connected to " + Session.getChannel() + "!"));
+                Platform.runLater(() ->
+                    WildChat.displayMessage("> Connected to " + Session.getChannel() + "!")
+                );
             }
 
             Platform.runLater(() -> WildChat.userList.addUser(uName));
@@ -116,7 +120,8 @@ public class DataProcessor implements Runnable
         }
     }
 
-    public static FlowPane formatMessage(ArrayList<Image> badges, String displayName, String color, ArrayList<Node> msgData)
+    public static FlowPane formatMessage(ArrayList<Image> badges, String displayName,
+                                         String color, ArrayList<Node> msgData)
     {
         FlowPane holder = new FlowPane();
         Label userName = null, messagePreAppen = new Label(">"), messageSeperator = new Label(":");

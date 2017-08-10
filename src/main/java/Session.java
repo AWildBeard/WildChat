@@ -1,4 +1,6 @@
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Session
 {
@@ -6,6 +8,10 @@ public class Session
     private String clientColor = null, clientDisplayName = null;
 
     private ArrayList<String> badgeSignatures = null;
+
+    private Map<String, String> emoteCodesAndIDs = new HashMap<>();
+
+    boolean mapSet = false;
 
     public Session() { clearData(); }
 
@@ -17,13 +23,27 @@ public class Session
 
     public String getClientDisplayName() { return clientDisplayName; }
 
+    public Map<String, String> getEmoteCodesAndIDs() { return emoteCodesAndIDs; }
+
+    public boolean isMapSet() { return mapSet; }
+
     public void setChannel(String newChannel) { channel = newChannel;}
 
     public void setBadgeSignatures(ArrayList<String> newBadgeSigs) { badgeSignatures = newBadgeSigs; }
 
     public void setClientColor(String newClientColor) { clientColor = newClientColor; }
 
-    public void setClientDisplayName(String newClientDisplayName) { clientDisplayName = newClientDisplayName; }
+    public void setClientDisplayName(String newClientDisplayName)
+    { clientDisplayName = newClientDisplayName; }
+
+    public void setEmoteCodesAndIDs(Map<String, String> emoteCodesAndIDs)
+    {
+        if (mapSet)
+            return;
+
+        this.emoteCodesAndIDs = emoteCodesAndIDs;
+        mapSet = true;
+    }
 
     public static void clearData()
     {

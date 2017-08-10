@@ -22,7 +22,7 @@ import static logUtils.Logger.log;
 
 public class HandleData
 {
-    private final String CLIENT_ID = "fb7mlvnq5fgh7isjrx0ce14f27f6nq",
+    public static final String CLIENT_ID = "fb7mlvnq5fgh7isjrx0ce14f27f6nq",
         EMOTE_DOWNLOAD_URL = "http://static-cdn.jtvnw.net/emoticons/v1/%s/1.0";
 
     private String data = null;
@@ -130,7 +130,8 @@ public class HandleData
                     if (! Emotes.hasEmote(id))
                     {
                         log("Getting emote: " + id);
-                        Emotes.cacheEmote(new Image(String.format(EMOTE_DOWNLOAD_URL, id), true), id);
+                        Emotes.cacheEmote(new Image(
+                            String.format(EMOTE_DOWNLOAD_URL, id), true), id);
                     }
                     else
                         log("Already have emote: " + id);
@@ -158,7 +159,8 @@ public class HandleData
                         }
                         if (index == indexGroupLength)
                         {
-                            emoteIndexes[firstNumber][1] = Integer.parseInt(sb.toString()); // + 1 to include last char
+                            // + 1 to include last char
+                            emoteIndexes[firstNumber][1] = Integer.parseInt(sb.toString());
                             sb.setLength(0);
                         }
                     }
@@ -474,7 +476,39 @@ public class HandleData
                     {
                         innerArray = emoteJsonArray.get(count);
                         JsonObject keyValuePair = innerArray.getAsJsonObject();
-                        log("ID: " + keyValuePair.get("id") + " Value: " + keyValuePair.get("code"));
+                        String id = keyValuePair.get("id").getAsString(),
+                            code = keyValuePair.get("code").getAsString();
+                        log("ID: " + id + " Code: " + code);
+                        if (id.equals("4"))
+                            code = ">(";
+                        else if (id.equals("8"))
+                            code = ":o";
+                        else if (id.equals("3"))
+                            code = ":D";
+                        else if (id.equals("14"))
+                            code = "R)";
+                        else if (id.equals("11"))
+                            code = ";)";
+                        else if (id.equals("9"))
+                            code = "<3";
+                        else if (id.equals("13"))
+                            code = ";p";
+                        else if (id.equals("12"))
+                            code = ":p";
+                        else if (id.equals("2"))
+                            code = ":(";
+                        else if (id.equals("1"))
+                            code = ":)";
+                        else if (id.equals("5"))
+                            code = ":z";
+                        else if (id.equals("7"))
+                            code = "B)";
+                        else if (id.equals("6"))
+                            code = "o_O";
+                        else if (id.equals("10"))
+                            code = ":\\";
+
+                        map.put(code, id);
                         count++;
                     }
 
@@ -491,21 +525,6 @@ public class HandleData
         }
         return map;
     }
-
-    /*
-                    while (idIndex > 0)
-                    {
-                        String value = jsonToLookAt.substring(valueIndex, endOfValue);
-                        String id = jsonToLookAt.substring(idIndex, endOfId);
-                        log("ID: " + id + " VALUE: " + value);
-                        map.put(value, id);
-                        log("ID index value: " + idIndex);
-                        idIndex = jsonToLookAt.indexOf("\"id\":", idIndex) + 5;
-                        endOfId = jsonToLookAt.indexOf(",", idIndex);
-                        valueIndex = jsonToLookAt.indexOf("\"code\":", idIndex) + 8;
-                        endOfValue = jsonToLookAt.indexOf("\"", valueIndex);
-                    }
-    */
 
     public boolean isUserJoinMsg() { return isUserJoinMsg; }
 

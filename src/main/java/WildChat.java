@@ -21,6 +21,7 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.*;
@@ -84,8 +85,9 @@ public class WildChat extends Application
     private final String filePrefix = ".WildChat/",
                          credentials = "credentials.dat",
                          uiSettingsFileName = "uisettings.dat",
-                         dotDirLocation = (System.getProperty("os.name").contains("Windows")) ?
-                             BasicIO.getEnvVars("APPDATA") + "/" : BasicIO.getEnvVars("HOME") + "/",
+                         dotDirLocation = (System.getProperty("os.name").contains("Windows"))
+                             ? BasicIO.getEnvVars("APPDATA") + "/"
+                             : BasicIO.getEnvVars("HOME") + "/",
                          credentialFile = dotDirLocation + filePrefix + credentials,
                          uiSettingsFile = dotDirLocation + filePrefix + uiSettingsFileName;
 
@@ -121,7 +123,9 @@ public class WildChat extends Application
         else
             canAccessCredentials = true;
 
-        log((canAccessCredentials) ? "Can read/write " + credentialFile : "Can't read/write " + credentialFile);
+        log((canAccessCredentials)
+            ? "Can read/write " + credentialFile
+            : "Can't read/write " + credentialFile);
 
         if (credentialsAvailable = FileUtil.hasData(credentialFile))
         {
@@ -150,7 +154,9 @@ public class WildChat extends Application
         else
             canAccessUiSettings = true;
 
-        log((canAccessUiSettings) ? "Can read/write " + uiSettingsFile : "Can't read/write " + uiSettingsFile);
+        log((canAccessUiSettings)
+            ? "Can read/write " + uiSettingsFile
+            : "Can't read/write " + uiSettingsFile);
 
         if (FileUtil.hasData(uiSettingsFile))
         {
@@ -214,7 +220,9 @@ public class WildChat extends Application
         this.primaryStage.setTitle("WildChat");
 
         // CTRL+Q exit application
-        this.primaryStage.getScene().getAccelerators().put(KeyCombination.keyCombination("CTRL+Q"),() -> stop());
+        this.primaryStage.getScene().getAccelerators().put(
+            KeyCombination.keyCombination("CTRL+Q"),() -> stop()
+        );
 
         log("Showing window");
         this.primaryStage.show();
@@ -239,17 +247,38 @@ public class WildChat extends Application
     private void initPostUI()
     {
         Node divider = mainContentHolder.lookup(".split-pane-divider");
-        Node scrollBar = messagePane.lookup(".scroll-bar");
+        Node messagePaneScrollBar = messagePane.lookup(".scroll-bar");
+        Node userListPaneScrollBar = userListPane.lookup(".scroll-bar");
 
         if (divider != null)
             divider.setStyle("-fx-background-color: " + uiAccentColor + ";");
 
-        if (scrollBar != null)
+        if (messagePaneScrollBar != null)
         {
-            Node thumb = scrollBar.lookup(".thumb");
-            Node track = scrollBar.lookup(".track");
-            Node incrementButton = scrollBar.lookup(".increment");
-            Node decrementButton = scrollBar.lookup(".decrement");
+            Node thumb = messagePaneScrollBar.lookup(".thumb");
+            Node track = messagePaneScrollBar.lookup(".track");
+            Node incrementButton = messagePaneScrollBar.lookup(".increment");
+            Node decrementButton = messagePaneScrollBar.lookup(".decrement");
+
+            if (thumb != null)
+                thumb.setStyle("-fx-background-color: " + uiAccentColor + ";");
+
+            if (track != null)
+                track.setStyle("-fx-background-color: " + backgroundColor + ";");
+
+            if (incrementButton != null)
+                incrementButton.setStyle("-fx-background-color: " + backgroundColor + ";");
+
+            if (decrementButton != null)
+                decrementButton.setStyle("-fx-background-color: " + backgroundColor + ";");
+        }
+
+        if (userListPaneScrollBar != null)
+        {
+            Node thumb = userListPaneScrollBar.lookup(".thumb");
+            Node track = userListPaneScrollBar.lookup(".track");
+            Node incrementButton = userListPaneScrollBar.lookup(".increment");
+            Node decrementButton = userListPaneScrollBar.lookup(".decrement");
 
             if (thumb != null)
                 thumb.setStyle("-fx-background-color: " + uiAccentColor + ";");
@@ -384,7 +413,8 @@ public class WildChat extends Application
                 "-fx-text-fill: " + textFill + ";");
         });
 
-        messagePane.vvalueProperty().addListener((ObservableValue<? extends Number> obs, Number oldValue, Number newValue) ->
+        messagePane.vvalueProperty().addListener(
+            (ObservableValue<? extends Number> obs, Number oldValue, Number newValue) ->
         {
             if (newValue.doubleValue() != 1.0)
                 messagePane.vvalueProperty().unbind();
@@ -398,64 +428,91 @@ public class WildChat extends Application
         {
             if (event.getCode().equals(KeyCode.ENTER))
             {
-                String message = messageField.getText().trim();
-                if (message.length() > 0)
+                if (connectionMessageReceived)
                 {
                     if (connectedToChannel)
                     {
-                        char[] rawMessage = message.toCharArray();
-                        sendMessage("PRIVMSG " + Session.getChannel() + " :" + message);
-
-                        if (! hasUserState)
+                        String message = messageField.getText().trim();
+                        if (message.length() > 0)
                         {
-                            displayMessage("> " + client.getNick() + " : " + message);
-                        }
+                            char[] rawMessage = message.toCharArray();
+                            sendMessage("PRIVMSG " + Session.getChannel() + " :" + message);
 
-                        else
-                        {
-                            ArrayList<Image> clientImageBadges = null;
-                            ArrayList<Node> messageNodes = new ArrayList<>();
-                            StringBuilder sb = new StringBuilder();
-
-                            if (session.getBadgeSignatures().size() >= 1)
+                            if (!hasUserState)
                             {
-                                clientImageBadges = new ArrayList<>();
-
-                                for (String badge : session.getBadgeSignatures())
-                                    clientImageBadges.add(Badges.getBadge(badge));
+                                displayMessage("> " + client.getNick() + " : " + message);
                             }
-
-                            userList.addUser(client.getNick(), clientImageBadges);
-
-                            int messageLength = message.length();
-                            int index = 0;
-                            for (char c : rawMessage)
+                            else
                             {
-                                index++;
-                                if (c == 32)
+                                ArrayList<Image> clientImageBadges = null;
+                                ArrayList<Node> messageNodes = new ArrayList<>();
+                                StringBuilder sb = new StringBuilder();
+
+                                if (session.getBadgeSignatures().size() >= 1)
                                 {
-                                    messageNodes.add(new Label(sb.toString()));
-                                    sb = new StringBuilder();
-                                    continue;
+                                    clientImageBadges = new ArrayList<>();
+
+                                    for (String badge : session.getBadgeSignatures())
+                                        clientImageBadges.add(Badges.getBadge(badge));
                                 }
 
-                                sb.append(c);
+                                userList.addUser(client.getNick(), clientImageBadges);
 
-                                if (index == messageLength)
-                                    messageNodes.add(new Label(sb.toString()));
+                                int messageLength = message.length();
+                                int index = 0;
+                                for (char c : rawMessage)
+                                {
+                                    index++;
+                                    if (c == 32 || index == messageLength)
+                                    {
+                                        if (index == messageLength)
+                                            sb.append(c);
+
+                                        String word = sb.toString();
+                                        if (session.getEmoteCodesAndIDs().containsKey(word))
+                                        {
+                                            String emoteID = session.getEmoteCodesAndIDs().get(word);
+                                            log(emoteID);
+                                            if (Emotes.hasEmote(emoteID))
+                                            {
+                                                messageNodes.add(new ImageView(Emotes.getEmote(emoteID)));
+                                            }
+                                            else
+                                            {
+                                                Image emote = new Image(
+                                                    String.format(HandleData.EMOTE_DOWNLOAD_URL, emoteID),
+                                                    true
+                                                );
+                                                Emotes.cacheEmote(emote, emoteID);
+                                                messageNodes.add(new ImageView(emote));
+                                            }
+                                        }
+                                        else
+                                        {
+                                            messageNodes.add(new Label(sb.toString()));
+                                        }
+                                        sb = new StringBuilder();
+                                        continue;
+                                    }
+                                    sb.append(c);
+                                }
+
+                                displayMessage(DataProcessor.formatMessage(
+                                    clientImageBadges, session.getClientDisplayName(),
+                                    session.getClientColor(), messageNodes));
                             }
-
-                            displayMessage(DataProcessor.formatMessage(
-                                clientImageBadges, session.getClientDisplayName(),
-                                session.getClientColor(), messageNodes));
                         }
                     }
                     else
                     {
                         displayMessage("> You are not connected to a channel yet!");
                     }
-                    messageField.clear();
                 }
+                else
+                {
+                    displayMessage("> Not connected to twitch.tv yet!");
+                }
+                messageField.clear();
             }
         });
     }
@@ -623,7 +680,8 @@ public class WildChat extends Application
                         os.writeObject(client);
                         os.flush();
                         os.close();
-                    } catch (IOException z)
+                    }
+                    catch (IOException z)
                     {
                         // Something really fucked up.
                         log("I strangely did not find the credentials file...");
@@ -833,7 +891,9 @@ public class WildChat extends Application
 
             try
             {
-                ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(new File(uiSettingsFile)));
+                ObjectOutputStream os = new ObjectOutputStream(
+                    new FileOutputStream(new File(uiSettingsFile))
+                );
                 os.writeObject(uiSettings);
                 os.close();
             }
