@@ -91,6 +91,8 @@ public class WildChat extends Application
                          credentialFile = dotDirLocation + filePrefix + credentials,
                          uiSettingsFile = dotDirLocation + filePrefix + uiSettingsFileName;
 
+    private String initialChannel = null;
+
     // 1d1f26
     static String textFill, backgroundColor, highlightColor, uiAccentColor, highlightTextColor;
 
@@ -108,8 +110,16 @@ public class WildChat extends Application
                 canAccessUiSettings,
                 debug = true;
 
-        if (launchArgs.length > 0 && launchArgs[0].equals("--no-debug"))
-            debug = false;
+        if (launchArgs.length > 0)
+        {
+            for (String arg : launchArgs)
+            {
+                if (arg.equals("--no-debug"))
+                    debug = false;
+                else if (arg.contains("--channel="))
+                    initialChannel = "#" + arg.substring(arg.indexOf('=') + 1);
+            }
+        }
 
         setShouldLog(debug);
 
@@ -208,7 +218,7 @@ public class WildChat extends Application
         }
 
         log("Setting up networking");
-        socketRunner = new TwitchConnect(client);
+        socketRunner = new TwitchConnect(client, initialChannel);
 
         log("Setting scene");
         root = new Scene(mainContent, 650, 400);
@@ -423,7 +433,7 @@ public class WildChat extends Application
                 messagePane.vvalueProperty().bind(messageHolder.heightProperty());
         });
 
-        log("setting message field interactions");
+        log("Setting message field interactions");
         messageField.setOnKeyPressed(event ->
         {
             if (event.getCode().equals(KeyCode.ENTER))
@@ -435,7 +445,6 @@ public class WildChat extends Application
                         String message = messageField.getText().trim();
                         if (message.length() > 0)
                         {
-                            char[] rawMessage = message.toCharArray();
                             sendMessage("PRIVMSG " + Session.getChannel() + " :" + message);
 
                             if (!hasUserState)
@@ -447,6 +456,7 @@ public class WildChat extends Application
                                 ArrayList<Image> clientImageBadges = null;
                                 ArrayList<Node> messageNodes = new ArrayList<>();
                                 StringBuilder sb = new StringBuilder();
+                                char[] rawMessage = message.toCharArray();
 
                                 if (session.getBadgeSignatures().size() >= 1)
                                 {

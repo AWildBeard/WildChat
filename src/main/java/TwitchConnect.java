@@ -1,3 +1,5 @@
+import javafx.application.Platform;
+
 import java.io.*;
 import java.net.Socket;
 import java.util.concurrent.ExecutorService;
@@ -18,6 +20,8 @@ public class TwitchConnect implements Runnable
     // The client using the program. Contains the user name and OAUTH token.
     private final Client client;
 
+    private String initialChannel = null;
+
     private static PipedOutputStream pipedOutputStream = new PipedOutputStream();
 
     private static PipedInputStream pipedInputStream = new PipedInputStream();
@@ -25,6 +29,12 @@ public class TwitchConnect implements Runnable
     private boolean acceptingMessages = true;
 
     public TwitchConnect(Client client) { this.client = client; }
+
+    public TwitchConnect(Client client, String initialChannel)
+    {
+        this.client = client;
+        this.initialChannel = initialChannel;
+    }
 
     private final Thread messageSender = new Thread(() ->
     {
@@ -118,7 +128,8 @@ public class TwitchConnect implements Runnable
         log("messageReceiver service running");
         while (! Thread.currentThread().isInterrupted())
         {
-            // Don't add the received data directly to the StringProperty. Check it for relevance before adding.
+            // Don't add the received data directly to the StringProperty.
+            // Check it for relevance before adding.
             String tmpData = String.valueOf(BasicIO.readLine(is));
 
             if (tmpData.substring(0, 4).equals("PING"))
@@ -192,6 +203,15 @@ public class TwitchConnect implements Runnable
         sendMessage("CAP REQ :twitch.tv/membership");
         sendMessage("CAP REQ :twitch.tv/tags");
         sendMessage("CAP REQ :twitch.tv/commands");
+        if (initialChannel != null)
+        {
+            sendMessage("JOIN " + initialChannel);
+            Platform.runLater(() ->
+            {
+                WildChat.session.setChannel(initialChannel);
+                WildChat.displayMessage("> Joining channel " + initialChannel + "...");
+            });
+        }
     }
 
     // Send a message to the Twitch IRC
