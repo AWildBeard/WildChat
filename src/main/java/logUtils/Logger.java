@@ -1,7 +1,6 @@
 package logUtils;
 
 import java.time.LocalDateTime;
-import java.util.concurrent.LinkedBlockingQueue;
 
 public class Logger
 {

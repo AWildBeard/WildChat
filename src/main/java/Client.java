@@ -1,5 +1,3 @@
-import javafx.application.Platform;
-
 import java.io.Serializable;
 
 // Data holder for the user of the program

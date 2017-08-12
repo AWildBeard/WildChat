@@ -145,8 +145,7 @@ public class WildChat extends Application
                 ObjectInputStream is = new ObjectInputStream(new FileInputStream(new File(credentialFile)));
                 client = (Client) is.readObject();
                 is.close();
-            }
-            catch (IOException | ClassNotFoundException e )
+            } catch (IOException | ClassNotFoundException e )
             {
                 log("Unrecoverable credential read operation");
                 return;
@@ -176,8 +175,7 @@ public class WildChat extends Application
                 ObjectInputStream is = new ObjectInputStream(new FileInputStream(new File(uiSettingsFile)));
                 uiSettings = (UISettings) is.readObject();
                 is.close();
-            }
-            catch (IOException | ClassNotFoundException e)
+            } catch (IOException | ClassNotFoundException e)
             {
                 log("Unrecoverable UISettings read operation");
             }
@@ -231,7 +229,7 @@ public class WildChat extends Application
 
         // CTRL+Q exit application
         this.primaryStage.getScene().getAccelerators().put(
-            KeyCombination.keyCombination("CTRL+Q"),() -> stop()
+            KeyCombination.keyCombination("CTRL+Q"), this::stop
         );
 
         log("Showing window");
@@ -383,45 +381,33 @@ public class WildChat extends Application
 
         connectButton.setOnAction(e -> showConnectWindow());
         connectButton.setOnMouseEntered(e ->
-        {
             connectButton.setStyle("-fx-background-color: " + highlightColor + ";" +
                 "-fx-font-size: " + uiFont + ";" +
-                "-fx-text-fill: " + highlightTextColor + ";");
-        });
+                "-fx-text-fill: " + highlightTextColor + ";"));
         connectButton.setOnMouseExited(e ->
-        {
             connectButton.setStyle("-fx-background-color: " + uiAccentColor + ";" +
                 "-fx-font-size: " + uiFont + ";" +
-                "-fx-text-fill: " + textFill + ";");
-        });
+                "-fx-text-fill: " + textFill + ";"));
 
         disconnectButton.setOnAction(e -> disconnectFromChannel());
         disconnectButton.setOnMouseEntered(e ->
-        {
             disconnectButton.setStyle("-fx-background-color: " + highlightColor + ";" +
                 "-fx-font-size: " + uiFont + ";" +
-                "-fx-text-fill: " + highlightTextColor + ";");
-        });
+                "-fx-text-fill: " + highlightTextColor + ";"));
         disconnectButton.setOnMouseExited(e ->
-        {
             disconnectButton.setStyle("-fx-background-color: " + uiAccentColor + ";" +
                 "-fx-font-size: " + uiFont + ";" +
-                "-fx-text-fill: " + textFill + ";");
-        });
+                "-fx-text-fill: " + textFill + ";"));
 
         uiSettingsButton.setOnAction(e -> showUISettingsWindow());
         uiSettingsButton.setOnMouseEntered(e ->
-        {
             uiSettingsButton.setStyle("-fx-background-color: " + highlightColor + ";" +
                 "-fx-font-size: " + uiFont + ";" +
-                "-fx-text-fill: " + highlightTextColor + ";");
-        });
+                "-fx-text-fill: " + highlightTextColor + ";"));
         uiSettingsButton.setOnMouseExited(e ->
-        {
             uiSettingsButton.setStyle("-fx-background-color: " + uiAccentColor + ";" +
                 "-fx-font-size: " + uiFont + ";" +
-                "-fx-text-fill: " + textFill + ";");
-        });
+                "-fx-text-fill: " + textFill + ";"));
 
         messagePane.vvalueProperty().addListener(
             (ObservableValue<? extends Number> obs, Number oldValue, Number newValue) ->
@@ -568,17 +554,13 @@ public class WildChat extends Application
             "-fx-font-size: " + uiFont + ";" +
             "-fx-text-fill: " + textFill + ";");
         confirmButton.setOnMouseEntered(e ->
-        {
             confirmButton.setStyle("-fx-background-color: " + highlightColor + ";" +
                 "-fx-font-size: " + uiFont + ";" +
-                "-fx-text-fill: " + highlightTextColor + ";");
-        });
+                "-fx-text-fill: " + highlightTextColor + ";"));
         confirmButton.setOnMouseExited(e ->
-        {
             confirmButton.setStyle("-fx-background-color: " + uiAccentColor + ";" +
                 "-fx-font-size: " + uiFont + ";" +
-                "-fx-text-fill: " + textFill + ";");
-        });
+                "-fx-text-fill: " + textFill + ";"));
         confirmButton.setOnAction(e ->
         {
             String channel = streamerField.getText();
@@ -603,17 +585,13 @@ public class WildChat extends Application
             "-fx-font-size: " + uiFont + ";" +
             "-fx-text-fill: " + textFill + ";");
         cancelButton.setOnMouseEntered(e ->
-        {
             cancelButton.setStyle("-fx-background-color: " + highlightColor + ";" +
                 "-fx-font-size: " + uiFont + ";" +
-                "-fx-text-fill: " + highlightTextColor + ";");
-        });
+                "-fx-text-fill: " + highlightTextColor + ";"));
         cancelButton.setOnMouseExited(e ->
-        {
             cancelButton.setStyle("-fx-background-color: " + uiAccentColor + ";" +
                 "-fx-font-size: " + uiFont + ";" +
-                "-fx-text-fill: " + textFill + ";");
-        });
+                "-fx-text-fill: " + textFill + ";"));
         cancelButton.setOnAction(e ->
         {
             userListPane.setContent(userList);
@@ -670,8 +648,7 @@ public class WildChat extends Application
             try
             {
                 client = new Client(oauthTextField.getText(), userNameTextField.getText());
-            }
-            catch (IllegalOauthKey y)
+            } catch (IllegalOauthKey y)
             {
                 log("Bad OAUTH key entered");
                 title.setText("Bad OAUTH key");
@@ -683,15 +660,17 @@ public class WildChat extends Application
                 Platform.runLater(() ->
                 {
                     log("Recording client data");
-                    ObjectOutputStream os = null;
                     try
                     {
-                        os = new ObjectOutputStream(new FileOutputStream(new File(credentialFile)));
+                        ObjectOutputStream os = new ObjectOutputStream(
+                            new FileOutputStream(
+                                new File(credentialFile)
+                            )
+                        );
                         os.writeObject(client);
                         os.flush();
                         os.close();
-                    }
-                    catch (IOException z)
+                    } catch (IOException z)
                     {
                         // Something really fucked up.
                         log("I strangely did not find the credentials file...");
@@ -853,17 +832,13 @@ public class WildChat extends Application
             "-fx-text-fill: " + textFill + ";" +
             "-fx-background-color: " + uiAccentColor + ";");
         closeButton.setOnMouseEntered(e ->
-        {
             closeButton.setStyle("-fx-font-size: " + uiFont + ";" +
                 "-fx-text-fill: " + highlightTextColor + ";" +
-                "-fx-background-color: " + highlightColor + ";");
-        });
+                "-fx-background-color: " + highlightColor + ";"));
         closeButton.setOnMouseExited(e ->
-        {
             closeButton.setStyle("-fx-font-size: " + uiFont + ";" +
                 "-fx-text-fill: " + textFill + ";" +
-                "-fx-background-color: " + uiAccentColor + ";");
-        });
+                "-fx-background-color: " + uiAccentColor + ";"));
         closeButton.setOnAction(e ->
         {
             messagePane.setVvalue(1.0); // scroll to the bottom
@@ -876,17 +851,13 @@ public class WildChat extends Application
             "-fx-text-fill: " + textFill + ";" +
             "-fx-background-color: " + uiAccentColor + ";");
         applyButton.setOnMouseEntered(e ->
-        {
             applyButton.setStyle("-fx-font-size: " + uiFont + ";" +
                 "-fx-text-fill: " + highlightTextColor + ";" +
-                "-fx-background-color: " + highlightColor + ";");
-        });
+                "-fx-background-color: " + highlightColor + ";"));
         applyButton.setOnMouseExited(e ->
-        {
             applyButton.setStyle("-fx-font-size: " + uiFont + ";" +
                 "-fx-text-fill: " + textFill + ";" +
-                "-fx-background-color: " + uiAccentColor + ";");
-        });
+                "-fx-background-color: " + uiAccentColor + ";"));
         applyButton.setOnAction(e ->
         {
             uiSettings.setMessageFontSize(Double.valueOf(messageFontInput.getText()));
@@ -906,8 +877,7 @@ public class WildChat extends Application
                 );
                 os.writeObject(uiSettings);
                 os.close();
-            }
-            catch (IOException y)
+            } catch (IOException y)
             {
                 log(y.getMessage());
             }
@@ -917,17 +887,13 @@ public class WildChat extends Application
             "-fx-text-fill: " + textFill + ";" +
             "-fx-background-color: " + uiAccentColor + ";");
         resetButton.setOnMouseEntered(e ->
-        {
             resetButton.setStyle("-fx-font-size: " + uiFont + ";" +
                 "-fx-text-fill: " + highlightTextColor + ";" +
-                "-fx-background-color: " + highlightColor + ";");
-        });
+                "-fx-background-color: " + highlightColor + ";"));
         resetButton.setOnMouseExited(e ->
-        {
             resetButton.setStyle("-fx-font-size: " + uiFont + ";" +
                 "-fx-text-fill: " + textFill + ";" +
-                "-fx-background-color: " + uiAccentColor + ";");
-        });
+                "-fx-background-color: " + uiAccentColor + ";"));
         resetButton.setOnAction(e ->
         {
             UISettings newSettings = new UISettings();
@@ -937,8 +903,7 @@ public class WildChat extends Application
                 ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(uiSettingsFile));
                 os.writeObject(newSettings);
                 os.close();
-            }
-            catch (IOException y)
+            } catch (IOException y)
             {
                 log(y.getMessage());
             }
@@ -956,17 +921,13 @@ public class WildChat extends Application
             "-fx-text-fill: " + textFill + ";" +
             "-fx-background-color: " + uiAccentColor + ";");
         shareUISettingsButton.setOnMouseEntered(e ->
-        {
             shareUISettingsButton.setStyle("-fx-font-size: " + uiFont + ";" +
                 "-fx-text-fill: " + highlightTextColor + ";" +
-                "-fx-background-color: " + highlightColor + ";");
-        });
+                "-fx-background-color: " + highlightColor + ";"));
         shareUISettingsButton.setOnMouseExited(e ->
-        {
             shareUISettingsButton.setStyle("-fx-font-size: " + uiFont + ";" +
                 "-fx-text-fill: " + textFill + ";" +
-                "-fx-background-color: " + uiAccentColor + ";");
-        });
+                "-fx-background-color: " + uiAccentColor + ";"));
         shareUISettingsButton.setOnAction(e ->
         {
             Stage stage = new Stage();
@@ -990,8 +951,7 @@ public class WildChat extends Application
                     ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(saveToFile));
                     os.writeObject(newSettings);
                     os.close();
-                }
-                catch (IOException y)
+                } catch (IOException y)
                 {
                     log(y.getMessage());
                 }
@@ -1003,17 +963,13 @@ public class WildChat extends Application
             "-fx-text-fill: " + textFill + ";" +
             "-fx-background-color: " + uiAccentColor + ";");
         importUISettingsButton.setOnMouseEntered(e ->
-        {
             importUISettingsButton.setStyle("-fx-font-size: " + uiFont + ";" +
                 "-fx-text-fill: " + highlightTextColor + ";" +
-                "-fx-background-color: " + highlightColor + ";");
-        });
+                "-fx-background-color: " + highlightColor + ";"));
         importUISettingsButton.setOnMouseExited(e ->
-        {
             importUISettingsButton.setStyle("-fx-font-size: " + uiFont + ";" +
                 "-fx-text-fill: " + textFill + ";" +
-                "-fx-background-color: " + uiAccentColor + ";");
-        });
+                "-fx-background-color: " + uiAccentColor + ";"));
         importUISettingsButton.setOnAction(e ->
         {
             Stage stage = new Stage();
@@ -1028,8 +984,7 @@ public class WildChat extends Application
                     ObjectInputStream is = new ObjectInputStream(new FileInputStream(importedObjectFile));
                     newSettings = (UISettings) is.readObject();
                     is.close();
-                }
-                catch (IOException | ClassNotFoundException y)
+                } catch (IOException | ClassNotFoundException y)
                 {
                     log(y.getMessage());
                 }
@@ -1057,21 +1012,15 @@ public class WildChat extends Application
             "-fx-text-fill: " + textFill + ";" +
             "-fx-background-color: " + uiAccentColor + ';');
         colorPickerButton.setOnMouseEntered(e ->
-        {
             colorPickerButton.setStyle("-fx-font-size: " + uiFont + ";" +
                 "-fx-text-fill: " + highlightTextColor + ";" +
-                "-fx-background-color: " + highlightColor + ';');
-        });
+                "-fx-background-color: " + highlightColor + ';'));
         colorPickerButton.setOnMouseExited(e ->
-        {
             colorPickerButton.setStyle("-fx-font-size: " + uiFont + ";" +
                 "-fx-text-fill: " + textFill + ";" +
-                "-fx-background-color: " + uiAccentColor + ';');
-        });
+                "-fx-background-color: " + uiAccentColor + ';'));
         colorPickerButton.setOnAction(e ->
-        {
-            getHostServices().showDocument("https://duckduckgo.com/?q=color+Picker&ia=answer");
-        });
+            getHostServices().showDocument("https://duckduckgo.com/?q=color+Picker&ia=answer"));
 
         messageFontLabel.setAlignment(Pos.CENTER_RIGHT);
         uiFontLabel.setAlignment(Pos.CENTER_RIGHT);

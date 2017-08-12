@@ -1,12 +1,12 @@
 public class TwitchConnectionInfo
 {
-    private static String host = "irc.chat.twitch.tv";
+    private final static String IRC_CHAT_TWITCH_TV = "irc.chat.twitch.tv";
 
-    private static int port = 6667;
+    private final static int PORT = 6667;
 
     private TwitchConnectionInfo() {}
 
-    public static String getHost() { return host; }
+    public static String getIrcChatTwitchTv() { return IRC_CHAT_TWITCH_TV; }
 
-    public static int getPort() { return port; }
+    public static int getPort() { return PORT; }
 }

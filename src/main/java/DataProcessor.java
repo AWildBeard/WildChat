@@ -16,9 +16,9 @@ public class DataProcessor implements Runnable
 {
     private String data;
 
-    private static Paint messageColor = Paint.valueOf(WildChat.textFill);
+    final private static Paint MESSAGE_PAINT = Paint.valueOf(WildChat.textFill);
 
-    private static Font font = new Font(WildChat.messageFontSize);
+    final private static Font MESSAGE_FONT = new Font(WildChat.messageFontSize);
 
     public DataProcessor(String dataToProcess) { this.data = dataToProcess; }
 
@@ -126,10 +126,10 @@ public class DataProcessor implements Runnable
         FlowPane holder = new FlowPane();
         Label userName = null, messagePreAppen = new Label(">"), messageSeperator = new Label(":");
 
-        messagePreAppen.setFont(font);
-        messagePreAppen.setTextFill(messageColor);
-        messageSeperator.setFont(font);
-        messageSeperator.setTextFill(messageColor);
+        messagePreAppen.setFont(MESSAGE_FONT);
+        messagePreAppen.setTextFill(MESSAGE_PAINT);
+        messageSeperator.setFont(MESSAGE_FONT);
+        messageSeperator.setTextFill(MESSAGE_PAINT);
 
         holder.setOrientation(Orientation.HORIZONTAL);
         holder.setHgap(WildChat.messageFontSize * 0.33);
@@ -145,8 +145,8 @@ public class DataProcessor implements Runnable
             if (color != null)
                 userName.setTextFill(Paint.valueOf(color));
             else
-                userName.setTextFill(messageColor);
-            userName.setFont(font);
+                userName.setTextFill(MESSAGE_PAINT);
+            userName.setFont(MESSAGE_FONT);
             holder.getChildren().addAll(userName, messageSeperator);
         }
 
@@ -154,8 +154,8 @@ public class DataProcessor implements Runnable
         {
             if (node instanceof Label)
             {
-                ((Label) node).setFont(font);
-                ((Label) node).setTextFill(messageColor);
+                ((Label) node).setFont(MESSAGE_FONT);
+                ((Label) node).setTextFill(MESSAGE_PAINT);
             }
             holder.getChildren().add(node);
         }

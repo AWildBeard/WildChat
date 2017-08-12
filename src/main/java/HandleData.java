@@ -36,12 +36,12 @@ public class HandleData
         isRoomstateData = false,
         isLocalMessage = false;
 
-    private char[] rawData;
+    private final char[] RAW_DATA;
 
     public HandleData(String data)
     {
         this.data = data;
-        rawData = data.toCharArray();
+        RAW_DATA = data.toCharArray();
         determineMessageType();
     }
 
@@ -60,6 +60,7 @@ public class HandleData
             isUserLeaveMsg = data.contains("PART");
             isSuccessfulConnectMsg = data.contains("001");
             isUserStateUpdate = data.contains("USERSTATE");
+            isRoomstateData = data.contains("ROOMSTATE");
             isLocalMessage = data.substring(0, 4).contains("EEE");
         }
     }
@@ -247,7 +248,7 @@ public class HandleData
                 for (int count = categoryStart ; count <= endOfCategoryLocation ; count++)
                 {
                     if (count != endOfCategoryLocation)
-                        sb.append(rawData[count]);
+                        sb.append(RAW_DATA[count]);
 
                     else
                         userNameColor = sb.toString();
@@ -353,7 +354,7 @@ public class HandleData
                         break;
 
                     // Found badge name end and beginning of badge version
-                    if (rawData[count] == '/')
+                    if (RAW_DATA[count] == '/')
                     {
                         // End of badge name found
                         String badgeNameString = sb.toString();
@@ -367,8 +368,8 @@ public class HandleData
                         count++; // Skip the /
                         sb.setLength(0); // Clear the StringBuilder
 
-                        while (rawData[count] != ',' && rawData[count] != ';')
-                            sb.append(rawData[count++]);
+                        while (RAW_DATA[count] != ',' && RAW_DATA[count] != ';')
+                            sb.append(RAW_DATA[count++]);
 
                         String badgeVersion = sb.toString();
 
@@ -377,7 +378,7 @@ public class HandleData
                         sb.setLength(0); // Clear the StringBuilder
                     }
                     else
-                        sb.append(rawData[count]);
+                        sb.append(RAW_DATA[count]);
                 }
                 log("Calculated badge signatures");
             }
@@ -479,34 +480,51 @@ public class HandleData
                         String id = keyValuePair.get("id").getAsString(),
                             code = keyValuePair.get("code").getAsString();
                         log("ID: " + id + " Code: " + code);
-                        if (id.equals("4"))
-                            code = ">(";
-                        else if (id.equals("8"))
-                            code = ":o";
-                        else if (id.equals("3"))
-                            code = ":D";
-                        else if (id.equals("14"))
-                            code = "R)";
-                        else if (id.equals("11"))
-                            code = ";)";
-                        else if (id.equals("9"))
-                            code = "<3";
-                        else if (id.equals("13"))
-                            code = ";p";
-                        else if (id.equals("12"))
-                            code = ":p";
-                        else if (id.equals("2"))
-                            code = ":(";
-                        else if (id.equals("1"))
-                            code = ":)";
-                        else if (id.equals("5"))
-                            code = ":z";
-                        else if (id.equals("7"))
-                            code = "B)";
-                        else if (id.equals("6"))
-                            code = "o_O";
-                        else if (id.equals("10"))
-                            code = ":\\";
+                        switch (id)
+                        {
+                            case "4":
+                                code = ">(";
+                                break;
+                            case "8":
+                                code = ":o";
+                                break;
+                            case "3":
+                                code = ":D";
+                                break;
+                            case "14":
+                                code = "R)";
+                                break;
+                            case "11":
+                                code = ";)";
+                                break;
+                            case "9":
+                                code = "<3";
+                                break;
+                            case "13":
+                                code = ";p";
+                                break;
+                            case "12":
+                                code = ":p";
+                                break;
+                            case "2":
+                                code = ":(";
+                                break;
+                            case "1":
+                                code = ":)";
+                                break;
+                            case "5":
+                                code = ":z";
+                                break;
+                            case "7":
+                                code = "B)";
+                                break;
+                            case "6":
+                                code = "o_O";
+                                break;
+                            case "10":
+                                code = ":\\";
+                                break;
+                        }
 
                         map.put(code, id);
                         count++;
@@ -515,9 +533,7 @@ public class HandleData
                     log("... Whew");
 
                 }
-            }
-
-            catch(IOException e)
+            } catch(IOException e)
             {
                 log(e.getMessage());
             }

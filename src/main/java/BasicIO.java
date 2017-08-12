@@ -37,8 +37,7 @@ public class BasicIO
             // of the char array by 1
             while (! isEOLChar((chars[index++] = (char) stream.read())))
                 chars = Arrays.copyOf(chars, index + 1);
-        }
-        catch (IOException e)
+        } catch (IOException e)
         {
             e.printStackTrace(System.out);
             System.out.println(e.getMessage());
@@ -51,7 +50,7 @@ public class BasicIO
     public static String readURL(String stringURL)
     {
         BufferedReader reader = null;
-        StringBuffer buffer = new StringBuffer();
+        StringBuilder buffer = new StringBuilder();
 
         try
         {
@@ -65,8 +64,7 @@ public class BasicIO
                 buffer.append(chars, 0, readLength);
 
             reader.close();
-        }
-        catch (IOException e)
+        } catch (IOException e)
         {
             System.out.println(e.getMessage());
         }

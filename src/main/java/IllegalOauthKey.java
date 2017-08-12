@@ -1,9 +1,9 @@
 public class IllegalOauthKey extends IllegalArgumentException
 {
-    private String message;
+    private final String MESSAGE;
 
-    public IllegalOauthKey(String message) { this.message = message; }
+    public IllegalOauthKey(final String MESSAGE) { this.MESSAGE = MESSAGE; }
 
     @Override
-    public String getMessage() { return message; }
+    public String getMessage() { return MESSAGE; }
 }

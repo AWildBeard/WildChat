@@ -45,8 +45,7 @@ public class TwitchConnect implements Runnable
             {
                 // Don't spam twitch. It doesn't like it.
                 Thread.sleep(777);
-            }
-            catch (InterruptedException y)
+            } catch (InterruptedException y)
             {
                 log(y.getMessage());
             }
@@ -65,8 +64,7 @@ public class TwitchConnect implements Runnable
                     os.write(messages.poll().getBytes());
                     os.flush();
                 }
-            }
-            catch (IOException y)
+            } catch (IOException y)
             {
                 log(y.getMessage());
             }
@@ -81,8 +79,7 @@ public class TwitchConnect implements Runnable
         {
             pipedInputStream.connect(pipedOutputStream);
             inputStream = new DataInputStream(pipedInputStream);
-        }
-        catch(IOException e)
+        } catch(IOException e)
         {
             log(e.getMessage());
         }
@@ -142,8 +139,7 @@ public class TwitchConnect implements Runnable
                 try
                 {
                     outputStream.writeUTF("EEE: Incorrect login information!");
-                }
-                catch (IOException e)
+                } catch (IOException e)
                 {
                     log(e.getMessage());
                 }
@@ -154,8 +150,7 @@ public class TwitchConnect implements Runnable
                 try
                 {
                     outputStream.writeUTF(tmpData);
-                }
-                catch (IOException e)
+                } catch (IOException e)
                 {
                     log(e.getMessage());
                 }
@@ -174,13 +169,12 @@ public class TwitchConnect implements Runnable
         try
         {
             log("Connecting to twitch IRC services");
-            Socket socket = new Socket(TwitchConnectionInfo.getHost(), TwitchConnectionInfo.getPort());
+            Socket socket = new Socket(TwitchConnectionInfo.getIrcChatTwitchTv(), TwitchConnectionInfo.getPort());
             WildChat.connected = true;
             is = new DataInputStream(socket.getInputStream());
             os = new DataOutputStream(socket.getOutputStream());
             log("Connection started");
-        }
-        catch(IOException e)
+        } catch(IOException e)
         {
             WildChat.connected = false;
             log(e.getMessage());
