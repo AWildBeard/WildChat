@@ -17,6 +17,7 @@ import javafx.application.Platform;
 import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.geometry.*;
+import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -35,6 +36,7 @@ import javafx.stage.StageStyle;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Scanner;
 
 import static logUtils.Logger.*;
 
@@ -64,7 +66,8 @@ public class WildChat extends Application
 
     private Button connectButton = new Button("Connect"),
             uiSettingsButton = new Button("Customize UI"),
-            disconnectButton = new Button("Disconnect");
+            disconnectButton = new Button("Disconnect"),
+            aboutButton = new Button("About");
 
     private static ScrollPane messagePane = new ScrollPane(),
             userListPane = new ScrollPane();
@@ -94,6 +97,8 @@ public class WildChat extends Application
     private String initialChannel = null;
 
     static String textFill, backgroundColor, highlightColor, uiAccentColor, highlightTextColor;
+
+    private final String VERSION = "v1.1.31-2";
 
     static double messageFontSize, uiFont;
 
@@ -330,6 +335,7 @@ public class WildChat extends Application
         styleButton(connectButton);
         styleButton(disconnectButton);
         styleButton(uiSettingsButton);
+        styleButton(aboutButton);
         styleTextField(messageField);
         menuBar.setStyle("-fx-background-color: " + uiAccentColor + ";");
         messagePane.setStyle("-fx-background-color: " + backgroundColor + ";" +
@@ -373,6 +379,8 @@ public class WildChat extends Application
             else
                 messagePane.vvalueProperty().bind(messageHolder.heightProperty());
         });
+
+        aboutButton.setOnAction(e -> showAboutWindow());
 
         log("Setting message field interactions");
         messageField.setOnKeyPressed(event ->
@@ -471,7 +479,7 @@ public class WildChat extends Application
     private void addNodesToParents()
     {
         log("Adding nodes to parents");
-        menuBar.getChildren().addAll(connectButton, disconnectButton, uiSettingsButton);
+        menuBar.getChildren().addAll(connectButton, disconnectButton, uiSettingsButton, aboutButton);
         mainContent.getColumnConstraints().addAll(column1Constraints, column2Constraints);
         mainContent.getRowConstraints().addAll(row1Constraints, row2Constraints, row3Constraints);
         messagePane.setContent(messageHolder);
@@ -480,6 +488,75 @@ public class WildChat extends Application
         mainContent.add(menuBar, 0, 0, 2, 1);
         mainContent.add(mainContentHolder, 0, 1, 2, 1);
         mainContent.add(messageField, 0, 2, 2, 1);
+    }
+
+    private void showAboutWindow()
+    {
+        BorderPane contentHolder = new BorderPane();
+        VBox controller = new VBox(), holder = new VBox();
+
+        Label title = new Label("About WildChat"),
+            githubPage = new Label("https://github.com/AWildBeard/WildChat"),
+            verNum = new Label(VERSION),
+            contributors = new Label("Contributors:");
+
+        Button exitButton = new Button("Exit");
+
+        title.setAlignment(Pos.CENTER);
+        styleUILabel(title);
+        BorderPane.setMargin(title, new Insets(25, 0, 0, 0));
+
+        Scanner fileReader = new Scanner(getClass().getResourceAsStream("text/contributors.txt"));
+
+        exitButton.setOnAction(e ->
+        {
+            userListPane.setContent(userList);
+            messagePane.setVvalue(1.0);
+            messagePane.vvalueProperty().bind(messageHolder.heightProperty());
+            messagePane.setContent(messageHolder);
+        });
+
+        controller.getChildren().add(exitButton);
+        contentHolder.setTop(title);
+        contentHolder.setCenter(holder);
+        holder.setAlignment(Pos.CENTER);
+        holder.setSpacing(30.0);
+        holder.getChildren().addAll(githubPage, verNum, contributors);
+        while (fileReader.hasNextLine())
+            holder.getChildren().add(new Label(fileReader.nextLine()));
+
+        for (Node label : holder.getChildren())
+        {
+            if (label instanceof Label)
+            {
+                styleUILabel((Label)label);
+                ((Label) label).setAlignment(Pos.CENTER);
+            }
+        }
+        githubPage.setStyle("-fx-text-fill: dodgerblue;" +
+            "-fx-underline: true;" +
+            "-fx-font-size: " + uiFont + ";");
+
+        githubPage.setOnMouseClicked(e ->
+            getHostServices().showDocument("https://github.com/AWildBeard/WildChat")
+        );
+        githubPage.setOnMouseEntered(event -> primaryStage.getScene().setCursor(Cursor.HAND));
+        githubPage.setOnMouseExited(event -> primaryStage.getScene().setCursor(Cursor.DEFAULT));
+
+        styleButton(exitButton);
+        exitButton.minWidthProperty().bind(controller.minWidthProperty());
+        VBox.setMargin(exitButton, new Insets(7, 0, 0, 0));
+        BorderPane.setAlignment(holder, Pos.CENTER);
+        BorderPane.setAlignment(title, Pos.CENTER);
+
+        controller.minWidthProperty().bind(userListPane.widthProperty());
+        contentHolder.minWidthProperty().bind(messagePane.widthProperty());
+        contentHolder.minHeightProperty().bind(messagePane.heightProperty());
+        userListPane.setContent(controller);
+        messagePane.vvalueProperty().unbind();
+        messagePane.setVvalue(0.0);
+        messagePane.setContent(contentHolder);
+
     }
 
     private void showConnectWindow()
