@@ -15,7 +15,7 @@
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.property.StringProperty;
-import javafx.beans.value.ObservableValue;
+import javafx.beans.value.ChangeListener;
 import javafx.geometry.*;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -93,7 +93,6 @@ public class WildChat extends Application
 
     private String initialChannel = null;
 
-    // 1d1f26
     static String textFill, backgroundColor, highlightColor, uiAccentColor, highlightTextColor;
 
     static double messageFontSize, uiFont;
@@ -194,6 +193,27 @@ public class WildChat extends Application
     @Override
     public void stop()
     {
+        if (credentialsAvailable)
+        {
+            log("Recording client data");
+            try
+            {
+                ObjectOutputStream os = new ObjectOutputStream(
+                    new FileOutputStream(
+                        new File(credentialFile)
+                    )
+                );
+                os.writeObject(client);
+                os.flush();
+                os.close();
+            } catch (IOException z)
+            {
+                // Something really fucked up.
+                log("I strangely did not find the credentials file...");
+            }
+        }
+
+        log("Correct client data entered");
         connected = false;
         log("ShutDown");
         System.exit(0);
@@ -262,44 +282,10 @@ public class WildChat extends Application
             divider.setStyle("-fx-background-color: " + uiAccentColor + ";");
 
         if (messagePaneScrollBar != null)
-        {
-            Node thumb = messagePaneScrollBar.lookup(".thumb");
-            Node track = messagePaneScrollBar.lookup(".track");
-            Node incrementButton = messagePaneScrollBar.lookup(".increment");
-            Node decrementButton = messagePaneScrollBar.lookup(".decrement");
-
-            if (thumb != null)
-                thumb.setStyle("-fx-background-color: " + uiAccentColor + ";");
-
-            if (track != null)
-                track.setStyle("-fx-background-color: " + backgroundColor + ";");
-
-            if (incrementButton != null)
-                incrementButton.setStyle("-fx-background-color: " + backgroundColor + ";");
-
-            if (decrementButton != null)
-                decrementButton.setStyle("-fx-background-color: " + backgroundColor + ";");
-        }
+            styleScrollBar((ScrollBar)messagePaneScrollBar);
 
         if (userListPaneScrollBar != null)
-        {
-            Node thumb = userListPaneScrollBar.lookup(".thumb");
-            Node track = userListPaneScrollBar.lookup(".track");
-            Node incrementButton = userListPaneScrollBar.lookup(".increment");
-            Node decrementButton = userListPaneScrollBar.lookup(".decrement");
-
-            if (thumb != null)
-                thumb.setStyle("-fx-background-color: " + uiAccentColor + ";");
-
-            if (track != null)
-                track.setStyle("-fx-background-color: " + backgroundColor + ";");
-
-            if (incrementButton != null)
-                incrementButton.setStyle("-fx-background-color: " + backgroundColor + ";");
-
-            if (decrementButton != null)
-                decrementButton.setStyle("-fx-background-color: " + backgroundColor + ";");
-        }
+            styleScrollBar((ScrollBar)userListPaneScrollBar);
     }
 
     private void setVisibleProperties()
@@ -341,19 +327,10 @@ public class WildChat extends Application
         row3Constraints.setFillHeight(true);
         menuBar.setSpacing(uiFont * 0.33);
         mainContentHolder.setDividerPosition(0, 0.75);
-        connectButton.setStyle("-fx-font-size: " + uiFont + ";" +
-            "-fx-text-fill: " + textFill + ";" +
-            "-fx-background-color: " + uiAccentColor + ";");
-        disconnectButton.setStyle("-fx-font-size: " + uiFont + ";" +
-            "-fx-text-fill: " + textFill + ";" +
-            "-fx-background-color: " + uiAccentColor + ";");
-        uiSettingsButton.setStyle("-fx-font-size: " + uiFont + ";" +
-            "-fx-text-fill: " + textFill + ";" +
-            "-fx-background-color: " + uiAccentColor + ";");
-        messageField.setStyle("-fx-font-size: " + messageFontSize + ";" +
-            "-fx-text-fill: " + textFill + ";" +
-            "-fx-background-color: " + backgroundColor + ";" +
-            "-fx-border-color: " + uiAccentColor + ";");
+        styleButton(connectButton);
+        styleButton(disconnectButton);
+        styleButton(uiSettingsButton);
+        styleTextField(messageField);
         menuBar.setStyle("-fx-background-color: " + uiAccentColor + ";");
         messagePane.setStyle("-fx-background-color: " + backgroundColor + ";" +
             "-fx-background: " + backgroundColor + ";" +
@@ -379,40 +356,18 @@ public class WildChat extends Application
 
         log("Setting disconnectButton/ connectButton interactions");
 
-        connectButton.setOnAction(e -> showConnectWindow());
-        connectButton.setOnMouseEntered(e ->
-            connectButton.setStyle("-fx-background-color: " + highlightColor + ";" +
-                "-fx-font-size: " + uiFont + ";" +
-                "-fx-text-fill: " + highlightTextColor + ";"));
-        connectButton.setOnMouseExited(e ->
-            connectButton.setStyle("-fx-background-color: " + uiAccentColor + ";" +
-                "-fx-font-size: " + uiFont + ";" +
-                "-fx-text-fill: " + textFill + ";"));
-
+        connectButton.setOnAction(e -> {
+            if (connectionMessageReceived)
+                showConnectWindow();
+            else
+                displayMessage("> Not connected to twitch.tv yet!");
+        });
         disconnectButton.setOnAction(e -> disconnectFromChannel());
-        disconnectButton.setOnMouseEntered(e ->
-            disconnectButton.setStyle("-fx-background-color: " + highlightColor + ";" +
-                "-fx-font-size: " + uiFont + ";" +
-                "-fx-text-fill: " + highlightTextColor + ";"));
-        disconnectButton.setOnMouseExited(e ->
-            disconnectButton.setStyle("-fx-background-color: " + uiAccentColor + ";" +
-                "-fx-font-size: " + uiFont + ";" +
-                "-fx-text-fill: " + textFill + ";"));
-
         uiSettingsButton.setOnAction(e -> showUISettingsWindow());
-        uiSettingsButton.setOnMouseEntered(e ->
-            uiSettingsButton.setStyle("-fx-background-color: " + highlightColor + ";" +
-                "-fx-font-size: " + uiFont + ";" +
-                "-fx-text-fill: " + highlightTextColor + ";"));
-        uiSettingsButton.setOnMouseExited(e ->
-            uiSettingsButton.setStyle("-fx-background-color: " + uiAccentColor + ";" +
-                "-fx-font-size: " + uiFont + ";" +
-                "-fx-text-fill: " + textFill + ";"));
 
-        messagePane.vvalueProperty().addListener(
-            (ObservableValue<? extends Number> obs, Number oldValue, Number newValue) ->
+        messagePane.vvalueProperty().addListener((obs, oldVal, newVal) ->
         {
-            if (newValue.doubleValue() != 1.0)
+            if (newVal.doubleValue() != 1.0)
                 messagePane.vvalueProperty().unbind();
 
             else
@@ -537,30 +492,16 @@ public class WildChat extends Application
         Button confirmButton = new Button("Confirm"),
                cancelButton = new Button("Cancel");
 
-        title.setStyle("-fx-text-fill: " + textFill + ";" +
-            "-fx-font-size: " + uiFont + ";");
+        styleUILabel(title);
 
-        streamerField.setStyle("-fx-background-color: " + backgroundColor + ";" +
-            "-fx-border-color: " + uiAccentColor + ";" +
-            "-fx-font-size: " + uiFont + ";" +
-            "-fx-text-fill: " + textFill);
+        styleTextField(streamerField);
         streamerField.setOnKeyPressed(event ->
         {
             if (event.getCode().equals(KeyCode.ENTER))
                 confirmButton.fire();
         });
 
-        confirmButton.setStyle("-fx-background-color: " + uiAccentColor + ";" +
-            "-fx-font-size: " + uiFont + ";" +
-            "-fx-text-fill: " + textFill + ";");
-        confirmButton.setOnMouseEntered(e ->
-            confirmButton.setStyle("-fx-background-color: " + highlightColor + ";" +
-                "-fx-font-size: " + uiFont + ";" +
-                "-fx-text-fill: " + highlightTextColor + ";"));
-        confirmButton.setOnMouseExited(e ->
-            confirmButton.setStyle("-fx-background-color: " + uiAccentColor + ";" +
-                "-fx-font-size: " + uiFont + ";" +
-                "-fx-text-fill: " + textFill + ";"));
+        styleButton(confirmButton);
         confirmButton.setOnAction(e ->
         {
             String channel = streamerField.getText();
@@ -581,17 +522,7 @@ public class WildChat extends Application
             cancelButton.fire();
         });
 
-        cancelButton.setStyle("-fx-background-color: " + uiAccentColor + ";" +
-            "-fx-font-size: " + uiFont + ";" +
-            "-fx-text-fill: " + textFill + ";");
-        cancelButton.setOnMouseEntered(e ->
-            cancelButton.setStyle("-fx-background-color: " + highlightColor + ";" +
-                "-fx-font-size: " + uiFont + ";" +
-                "-fx-text-fill: " + highlightTextColor + ";"));
-        cancelButton.setOnMouseExited(e ->
-            cancelButton.setStyle("-fx-background-color: " + uiAccentColor + ";" +
-                "-fx-font-size: " + uiFont + ";" +
-                "-fx-text-fill: " + textFill + ";"));
+        styleButton(cancelButton);
         cancelButton.setOnAction(e ->
         {
             userListPane.setContent(userList);
@@ -626,23 +557,28 @@ public class WildChat extends Application
         title.requestFocus();
     }
 
-    // TODO: Implement
+    // TODO: Implement Better
     private void askForCredentials()
     {
         Stage secondaryStage = new Stage();
+        BorderPane contentAlignmentPane = new BorderPane();
         VBox contentHolder = new VBox();
 
-        Text title = new Text("Please enter credentials");
-        TextField userNameTextField = new TextField();
-        userNameTextField.setPromptText("Username");
-        TextField oauthTextField = new TextField();
-        oauthTextField.setPromptText("OAUTH KEY");
+        contentAlignmentPane.setStyle("-fx-background-color: " + backgroundColor + ";");
+
+        Label title = new Label("Please enter credentials");
         Button confirmButton = new Button("Confirm");
+        TextField userNameTextField = new TextField(),
+            oauthTextField = new TextField();
+        userNameTextField.setPromptText("Username");
+        oauthTextField.setPromptText("OAUTH KEY");
 
         contentHolder.setSpacing(20.0);
         contentHolder.setAlignment(Pos.CENTER);
 
-        contentHolder.getChildren().addAll(title, userNameTextField, oauthTextField, confirmButton);
+        contentAlignmentPane.setCenter(contentHolder);
+        contentAlignmentPane.setTop(title);
+        contentHolder.getChildren().addAll(userNameTextField, oauthTextField, confirmButton);
 
         confirmButton.setOnAction(e -> {
             try
@@ -657,28 +593,8 @@ public class WildChat extends Application
 
             if (client.isReady())
             {
-                Platform.runLater(() ->
-                {
-                    log("Recording client data");
-                    try
-                    {
-                        ObjectOutputStream os = new ObjectOutputStream(
-                            new FileOutputStream(
-                                new File(credentialFile)
-                            )
-                        );
-                        os.writeObject(client);
-                        os.flush();
-                        os.close();
-                    } catch (IOException z)
-                    {
-                        // Something really fucked up.
-                        log("I strangely did not find the credentials file...");
-                    }
-                });
-
-                log("Correct client data entered");
                 secondaryStage.close();
+                credentialsAvailable = true;
             }
             else
             {
@@ -693,7 +609,15 @@ public class WildChat extends Application
                 confirmButton.fire();
         });
 
-        Scene root = new Scene(contentHolder, 400, 300);
+        styleUILabel(title);
+        styleTextField(userNameTextField);
+        styleTextField(oauthTextField);
+        styleButton(confirmButton);
+        BorderPane.setAlignment(title, Pos.CENTER);
+        BorderPane.setMargin(title, new Insets(10));
+        BorderPane.setMargin(contentHolder, new Insets(0, 30, 0, 30));
+
+        Scene root = new Scene(contentAlignmentPane, 400, 300);
         secondaryStage.setScene(root);
         secondaryStage.setTitle("Enter credentials");
         secondaryStage.setOnShown(e -> title.requestFocus());
@@ -751,94 +675,31 @@ public class WildChat extends Application
                uiAccentColorCircle = new Circle(20.0),
                highlightTextColorCircle = new Circle(20.0);
 
-        textColorCircle.setStyle("-fx-fill: " + textFill + ";" +
-            "-fx-stroke-width: 3px;" +
-            "-fx-stroke: derive(" + textFill + ", 100%);");
-        backgroundColorCircle.setStyle("-fx-fill: " + backgroundColor + ";" +
-            "-fx-stroke-width: 3px;" +
-            "-fx-stroke: derive(" + backgroundColor + ", 100%);");
-        highlighColorCircle.setStyle("-fx-fill: " + highlightColor + ";" +
-            "-fx-stroke-width: 3px;" +
-            "-fx-stroke: derive(" + highlightColor + ", 100%);");
-        uiAccentColorCircle.setStyle("-fx-fill: " + uiAccentColor + ";" +
-            "-fx-stroke-width: 3px;" +
-            "-fx-stroke: derive(" + uiAccentColor + ", 100%);");
-        highlightTextColorCircle.setStyle("-fx-fill: " + highlightTextColor + ";" +
-            "-fx-stroke-width: 3px;" +
-            "-fx-stroke: derive(" + highlightTextColor + ", 100%);");
+        styleCircle(textColorCircle, textFill);
+        styleCircle(backgroundColorCircle, backgroundColor);
+        styleCircle(highlighColorCircle, highlightColor);
+        styleCircle(uiAccentColorCircle, uiAccentColor);
+        styleCircle(highlightTextColorCircle, highlightTextColor);
 
-        messageFontInput.setMaxWidth(2.85 * uiFont);
-        messageFontInput.setAlignment(Pos.CENTER_LEFT);
-        messageFontInput.setStyle("-fx-font-size: " + uiFont + ";" +
-            "-fx-text-fill: " + textFill + ";" +
-            "-fx-background-color: " + backgroundColor + ";" +
-            "-fx-border-color: " + uiAccentColor + ";");
-        uiFontInput.setMaxWidth(2.85 * uiFont);
-        uiFontInput.setAlignment(Pos.CENTER_LEFT);
-        uiFontInput.setStyle("-fx-font-size: " + uiFont + ";" +
-            "-fx-text-fill: " + textFill + ";" +
-            "-fx-background-color: " + backgroundColor + ";" +
-            "-fx-border-color: " + uiAccentColor + ";");
-        textColorInput.setMaxWidth(6.1 * uiFont);
-        textColorInput.setAlignment(Pos.CENTER_LEFT);
-        textColorInput.setStyle("-fx-font-size: " + uiFont + ";" +
-            "-fx-text-fill: " + textFill + ";" +
-            "-fx-background-color: " + backgroundColor + ";" +
-            "-fx-border-color: " + uiAccentColor + ";");
-        backgroundColorInput.setMaxWidth(6.1 * uiFont);
-        backgroundColorInput.setAlignment(Pos.CENTER_LEFT);
-        backgroundColorInput.setStyle("-fx-font-size: " + uiFont + ";" +
-            "-fx-text-fill: " + textFill + ";" +
-            "-fx-background-color: " + backgroundColor + ";" +
-            "-fx-border-color: " + uiAccentColor + ";");
-        highlighColorInput.setMaxWidth(6.1 * uiFont);
-        highlighColorInput.setAlignment(Pos.CENTER_LEFT);
-        highlighColorInput.setStyle("-fx-font-size: " + uiFont + ";" +
-            "-fx-text-fill: " + textFill + ";" +
-            "-fx-background-color: " + backgroundColor + ";" +
-            "-fx-border-color: " + uiAccentColor + ";");
-        uiAccentColorInput.setMaxWidth(6.1 * uiFont);
-        uiAccentColorInput.setAlignment(Pos.CENTER_LEFT);
-        uiAccentColorInput.setStyle("-fx-font-Size: " + uiFont + ";" +
-                "-fx-text-fill: " + textFill + ";" +
-                "-fx-background-color: " + backgroundColor + ";" +
-                "-fx-border-color: " + uiAccentColor + ";");
-        highlightTextColorInput.setMaxWidth(6.1 * uiFont);
-        highlightTextColorInput.setAlignment(Pos.CENTER_LEFT);
-        highlightTextColorInput.setStyle("-fx-font-size: " + uiFont + ";" +
-            "-fx-text-fill: " + textFill + ";" +
-            "-fx-background-color: " + backgroundColor + ";" +
-            "-fx-border-color:  " + uiAccentColor + ";");
+        styleTextField(messageFontInput, 2.85);
+        styleTextField(uiFontInput, 2.85);
+        styleTextField(textColorInput, 6.1);
+        styleTextField(backgroundColorInput, 6.1);
+        styleTextField(highlighColorInput, 6.1);
+        styleTextField(uiAccentColorInput, 6.1);
+        styleTextField(highlightTextColorInput, 6.1);
 
-        messageFontLabel.setStyle("-fx-font-size: " + uiFont + ";" +
-            "-fx-text-fill: " + textFill + ";");
-        uiFontLabel.setStyle("-fx-font-size: " + uiFont + ";" +
-            "-fx-text-fill: " + textFill + ";");
-        textColorLabel.setStyle("-fx-font-size: " + uiFont + ";" +
-            "-fx-text-fill: " + textFill + ";");
-        backgroundColorLabel.setStyle("-fx-font-size: " + uiFont + ";" +
-            "-fx-text-fill: " + textFill + ";");
-        highlightColorLabel.setStyle("-fx-font-size: " + uiFont + ";" +
-            "-fx-text-fill: " + textFill + ";");
-        uiAccentColorLabel.setStyle("-fx-font-size: " + uiFont + ";" +
-                "-fx-text-fill: " + textFill + ";");
-        highlightTextColorLabel.setStyle("-fx-font-size: " + uiFont + ";" +
-            "-fx-text-fill: " + textFill + ";");
+        styleUILabel(messageFontLabel);
+        styleUILabel(uiFontLabel);
+        styleUILabel(textColorLabel);
+        styleUILabel(backgroundColorLabel);
+        styleUILabel(highlightColorLabel);
+        styleUILabel(uiAccentColorLabel);
+        styleUILabel(highlightTextColorLabel);
 
-        title.setStyle("-fx-text-fill: " + textFill + ";" +
-            "-fx-font-size: " + uiFont + ";");
+        styleUILabel(title);
 
-        closeButton.setStyle("-fx-font-size: " + uiFont + ";" +
-            "-fx-text-fill: " + textFill + ";" +
-            "-fx-background-color: " + uiAccentColor + ";");
-        closeButton.setOnMouseEntered(e ->
-            closeButton.setStyle("-fx-font-size: " + uiFont + ";" +
-                "-fx-text-fill: " + highlightTextColor + ";" +
-                "-fx-background-color: " + highlightColor + ";"));
-        closeButton.setOnMouseExited(e ->
-            closeButton.setStyle("-fx-font-size: " + uiFont + ";" +
-                "-fx-text-fill: " + textFill + ";" +
-                "-fx-background-color: " + uiAccentColor + ";"));
+        styleButton(closeButton);
         closeButton.setOnAction(e ->
         {
             messagePane.setVvalue(1.0); // scroll to the bottom
@@ -847,17 +708,7 @@ public class WildChat extends Application
             userListPane.setContent(userList);
         });
 
-        applyButton.setStyle("-fx-font-size: " + uiFont + ";" +
-            "-fx-text-fill: " + textFill + ";" +
-            "-fx-background-color: " + uiAccentColor + ";");
-        applyButton.setOnMouseEntered(e ->
-            applyButton.setStyle("-fx-font-size: " + uiFont + ";" +
-                "-fx-text-fill: " + highlightTextColor + ";" +
-                "-fx-background-color: " + highlightColor + ";"));
-        applyButton.setOnMouseExited(e ->
-            applyButton.setStyle("-fx-font-size: " + uiFont + ";" +
-                "-fx-text-fill: " + textFill + ";" +
-                "-fx-background-color: " + uiAccentColor + ";"));
+        styleButton(applyButton);
         applyButton.setOnAction(e ->
         {
             uiSettings.setMessageFontSize(Double.valueOf(messageFontInput.getText()));
@@ -883,30 +734,12 @@ public class WildChat extends Application
             }
         });
 
-        resetButton.setStyle("-fx-font-size: " + uiFont + ";" +
-            "-fx-text-fill: " + textFill + ";" +
-            "-fx-background-color: " + uiAccentColor + ";");
-        resetButton.setOnMouseEntered(e ->
-            resetButton.setStyle("-fx-font-size: " + uiFont + ";" +
-                "-fx-text-fill: " + highlightTextColor + ";" +
-                "-fx-background-color: " + highlightColor + ";"));
-        resetButton.setOnMouseExited(e ->
-            resetButton.setStyle("-fx-font-size: " + uiFont + ";" +
-                "-fx-text-fill: " + textFill + ";" +
-                "-fx-background-color: " + uiAccentColor + ";"));
+        styleButton(resetButton);
         resetButton.setOnAction(e ->
         {
             UISettings newSettings = new UISettings();
 
-            try
-            {
-                ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(uiSettingsFile));
-                os.writeObject(newSettings);
-                os.close();
-            } catch (IOException y)
-            {
-                log(y.getMessage());
-            }
+            writeUISettingsToFile(newSettings, uiSettingsFile);
 
             messageFontInput.setText(String.valueOf((int) newSettings.getMessageFontSize()));
             uiFontInput.setText(String.valueOf((int) newSettings.getUiFont()));
@@ -917,17 +750,7 @@ public class WildChat extends Application
             highlightTextColorInput.setText(newSettings.getHighlightTextColor());
         });
 
-        shareUISettingsButton.setStyle("-fx-font-size: " + uiFont + ";" +
-            "-fx-text-fill: " + textFill + ";" +
-            "-fx-background-color: " + uiAccentColor + ";");
-        shareUISettingsButton.setOnMouseEntered(e ->
-            shareUISettingsButton.setStyle("-fx-font-size: " + uiFont + ";" +
-                "-fx-text-fill: " + highlightTextColor + ";" +
-                "-fx-background-color: " + highlightColor + ";"));
-        shareUISettingsButton.setOnMouseExited(e ->
-            shareUISettingsButton.setStyle("-fx-font-size: " + uiFont + ";" +
-                "-fx-text-fill: " + textFill + ";" +
-                "-fx-background-color: " + uiAccentColor + ";"));
+        styleButton(shareUISettingsButton);
         shareUISettingsButton.setOnAction(e ->
         {
             Stage stage = new Stage();
@@ -946,30 +769,11 @@ public class WildChat extends Application
                 newSettings.setUIAccentColor(uiAccentColorInput.getText());
                 newSettings.setHighlightTextColor(highlightTextColorInput.getText());
 
-                try
-                {
-                    ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(saveToFile));
-                    os.writeObject(newSettings);
-                    os.close();
-                } catch (IOException y)
-                {
-                    log(y.getMessage());
-                }
-
+                writeUISettingsToFile(newSettings, saveToFile);
             }
         });
 
-        importUISettingsButton.setStyle("-fx-font-size: " + uiFont + ";" +
-            "-fx-text-fill: " + textFill + ";" +
-            "-fx-background-color: " + uiAccentColor + ";");
-        importUISettingsButton.setOnMouseEntered(e ->
-            importUISettingsButton.setStyle("-fx-font-size: " + uiFont + ";" +
-                "-fx-text-fill: " + highlightTextColor + ";" +
-                "-fx-background-color: " + highlightColor + ";"));
-        importUISettingsButton.setOnMouseExited(e ->
-            importUISettingsButton.setStyle("-fx-font-size: " + uiFont + ";" +
-                "-fx-text-fill: " + textFill + ";" +
-                "-fx-background-color: " + uiAccentColor + ";"));
+        styleButton(importUISettingsButton);
         importUISettingsButton.setOnAction(e ->
         {
             Stage stage = new Stage();
@@ -1008,17 +812,7 @@ public class WildChat extends Application
             }
         });
 
-        colorPickerButton.setStyle("-fx-font-size: " + uiFont + ";" +
-            "-fx-text-fill: " + textFill + ";" +
-            "-fx-background-color: " + uiAccentColor + ';');
-        colorPickerButton.setOnMouseEntered(e ->
-            colorPickerButton.setStyle("-fx-font-size: " + uiFont + ";" +
-                "-fx-text-fill: " + highlightTextColor + ";" +
-                "-fx-background-color: " + highlightColor + ';'));
-        colorPickerButton.setOnMouseExited(e ->
-            colorPickerButton.setStyle("-fx-font-size: " + uiFont + ";" +
-                "-fx-text-fill: " + textFill + ";" +
-                "-fx-background-color: " + uiAccentColor + ';'));
+        styleButton(colorPickerButton);
         colorPickerButton.setOnAction(e ->
             getHostServices().showDocument("https://duckduckgo.com/?q=color+Picker&ia=answer"));
 
@@ -1053,6 +847,7 @@ public class WildChat extends Application
         controller.minWidthProperty().bind(userListPane.widthProperty());
         contentHolder.minWidthProperty().bind(messagePane.widthProperty());
 
+        // Fill the available space with the button
         for (Node btn : controller.getChildren())
             if (btn instanceof Button)
             {
@@ -1064,7 +859,7 @@ public class WildChat extends Application
         messagePane.setContent(dummy);
         userListPane.setContent(controller);
 
-        messageFontInput.textProperty().addListener((obs, oldVal, newVal) ->
+        ChangeListener<String> fontInputChangeListener = ((obs, oldVal, newVal) ->
         {
             if (newVal.isEmpty())
                 ((StringProperty)obs).setValue(newVal);
@@ -1075,29 +870,21 @@ public class WildChat extends Application
             else
                 ((StringProperty)obs).setValue(oldVal);
         });
-        uiFontInput.textProperty().addListener((obs, oldVal, newVal) ->
-        {
-            if (newVal.isEmpty())
-                ((StringProperty)obs).setValue(newVal);
 
-            else if (newVal.matches("\\d+") && Integer.parseInt(newVal) <= 35)
-                ((StringProperty)obs).setValue(newVal);
+        messageFontInput.textProperty().addListener(fontInputChangeListener);
+        uiFontInput.textProperty().addListener(fontInputChangeListener);
 
-            else
-                ((StringProperty)obs).setValue(oldVal);
-        });
+        // TODO: Simplify?
         textColorInput.textProperty().addListener((obs, oldVal, newVal) ->
         {
             if (newVal.matches("#[a-fA-F0-9]{0,6}"))
             {
                 ((StringProperty)obs).setValue(newVal);
                 if (newVal.length() == 7)
-                    textColorCircle.setFill(Paint.valueOf(newVal));
+                    styleCircle(textColorCircle, newVal);
             }
             else
-            {
                 ((StringProperty)obs).setValue(oldVal);
-            }
         });
         backgroundColorInput.textProperty().addListener((obs, oldVal, newVal) ->
         {
@@ -1105,12 +892,10 @@ public class WildChat extends Application
             {
                 ((StringProperty)obs).setValue(newVal);
                 if (newVal.length() == 7)
-                    backgroundColorCircle.setFill(Paint.valueOf(newVal));
+                    styleCircle(backgroundColorCircle, newVal);
             }
             else
-            {
                 ((StringProperty)obs).setValue(oldVal);
-            }
         });
         highlighColorInput.textProperty().addListener((obs, oldVal, newVal) ->
         {
@@ -1118,12 +903,10 @@ public class WildChat extends Application
             {
                 ((StringProperty)obs).setValue(newVal);
                 if (newVal.length() == 7)
-                    highlighColorCircle.setFill(Paint.valueOf(newVal));
+                    styleCircle(highlighColorCircle, newVal);
             }
             else
-            {
                 ((StringProperty)obs).setValue(oldVal);
-            }
         });
         uiAccentColorInput.textProperty().addListener((obs, oldVal, newVal) ->
         {
@@ -1131,12 +914,10 @@ public class WildChat extends Application
             {
                 ((StringProperty)obs).setValue(newVal);
                 if (newVal.length() == 7)
-                    uiAccentColorCircle.setFill(Paint.valueOf(newVal));
+                    styleCircle(uiAccentColorCircle, newVal);
             }
             else
-            {
                 ((StringProperty)obs).setValue(oldVal);
-            }
         });
         highlightTextColorInput.textProperty().addListener((obs, oldVal, newVal) ->
         {
@@ -1144,32 +925,101 @@ public class WildChat extends Application
             {
                 ((StringProperty)obs).setValue(newVal);
                 if (newVal.length() == 7)
-                    highlightTextColorCircle.setFill(Paint.valueOf(newVal));
+                    styleCircle(highlightTextColorCircle, newVal);
             }
             else
-            {
                 ((StringProperty)obs).setValue(oldVal);
-            }
         });
-
+        // TODO: END
+    }
+    
+    private void styleCircle(Circle circleToStyle, String color)
+    {
+        circleToStyle.setStyle("-fx-fill: " + color + ";" +
+                        "-fx-stroke-width: 3px;" +
+                        "-fx-stroke: derive(" + color + ", 100%)");
     }
 
-    private void disconnectFromChannel()
+    private void styleTextField(TextField textFieldToStyle, double scale)
     {
-        if (connectedToChannel)
+        textFieldToStyle.setMaxWidth(scale * uiFont);
+        textFieldToStyle.setAlignment(Pos.CENTER_LEFT);
+        textFieldToStyle.setStyle("-fx-font-size: " + uiFont + ";" +
+            "-fx-text-fill: " + textFill + ";" +
+            "-fx-background-color: " + backgroundColor + ";" +
+            "-fx-border-color: " + uiAccentColor + ";");
+    }
+
+    private void styleTextField(TextField textFieldToStyle)
+    {
+        textFieldToStyle.setAlignment(Pos.CENTER_LEFT);
+        textFieldToStyle.setStyle("-fx-font-size: " + uiFont + ";" +
+            "-fx-text-fill: " + textFill + ";" +
+            "-fx-background-color: " + backgroundColor + ";" +
+            "-fx-border-color: " + uiAccentColor + ";");
+    }
+
+    private void styleUILabel(Label labelToStyle)
+    {
+        labelToStyle.setStyle("-fx-font-size: " + uiFont + ";" +
+            "-fx-text-fill: " + textFill + ";");
+    }
+
+    private void styleButton(Button buttonToStyle)
+    {
+        buttonToStyle.setStyle("-fx-font-size: " + uiFont + ";" +
+            "-fx-text-fill: " + textFill + ";" +
+            "-fx-background-color: " + uiAccentColor + ";");
+
+        buttonToStyle.setOnMouseEntered(e ->
+            buttonToStyle.setStyle("-fx-font-size: " + uiFont + ";" +
+                "-fx-text-fill: " + highlightTextColor + ";" +
+                "-fx-background-color: " + highlightColor + ";")
+        );
+
+        buttonToStyle.setOnMouseExited(e ->
+            buttonToStyle.setStyle("-fx-font-size: " + uiFont + ";" +
+                "-fx-text-fill: " + textFill + ";" +
+                "-fx-background-color: " + uiAccentColor + ";")
+        );
+    }
+
+    private void styleScrollBar(ScrollBar scrollBarToStyle)
+    {
+        Node thumb = scrollBarToStyle.lookup(".thumb");
+        Node track = scrollBarToStyle.lookup(".track");
+        Node incrementButton = scrollBarToStyle.lookup(".increment");
+        Node decrementButton = scrollBarToStyle.lookup(".decrement");
+
+        if (thumb != null)
+            thumb.setStyle("-fx-background-color: " + uiAccentColor + ";");
+
+        if (track != null)
+            track.setStyle("-fx-background-color: " + backgroundColor + ";");
+
+        if (incrementButton != null)
+            incrementButton.setStyle("-fx-background-color: " + backgroundColor + ";");
+
+        if (decrementButton != null)
+            decrementButton.setStyle("-fx-background-color: " + backgroundColor + ";");
+    }
+
+    private void writeUISettingsToFile(UISettings settingsToWrite, File saveToFile)
+    {
+        try
         {
-            log("Disconnecting from " + Session.getChannel());
-            sendMessage("PART " + Session.getChannel());
-            displayMessage("> Leaving channel " + Session.getChannel());
-            session = new Session();
-            userList.removeAllUsers();
-            hasUserState = false;
-            connectedToChannel = false;
-        }
-        else
+            ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(saveToFile));
+            os.writeObject(settingsToWrite);
+            os.close();
+        } catch (IOException y)
         {
-            displayMessage("> You are not connected to a channel!");
+            log(y.getMessage());
         }
+    }
+
+    private void writeUISettingsToFile(UISettings settingsToWrite, String saveToFile)
+    {
+        writeUISettingsToFile(settingsToWrite, new File(saveToFile));
     }
 
     private void sendMessage(String message) { socketRunner.sendMessage(message.trim()); }
@@ -1192,6 +1042,24 @@ public class WildChat extends Application
 
         messageHolder.getChildren().remove(0);
         messageHolder.getChildren().add(125, holder);
+    }
+
+    private void disconnectFromChannel()
+    {
+        if (connectedToChannel)
+        {
+            log("Disconnecting from " + Session.getChannel());
+            sendMessage("PART " + Session.getChannel());
+            displayMessage("> Leaving channel " + Session.getChannel());
+            session = new Session();
+            userList.removeAllUsers();
+            hasUserState = false;
+            connectedToChannel = false;
+        }
+        else
+        {
+            displayMessage("> You are not connected to a channel!");
+        }
     }
 
     public static void main(String[] args)

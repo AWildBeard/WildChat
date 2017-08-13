@@ -23,7 +23,8 @@ import static logUtils.Logger.log;
 public class HandleData
 {
     public static final String CLIENT_ID = "fb7mlvnq5fgh7isjrx0ce14f27f6nq",
-        EMOTE_DOWNLOAD_URL = "http://static-cdn.jtvnw.net/emoticons/v1/%s/1.0";
+        EMOTE_DOWNLOAD_URL = "http://static-cdn.jtvnw.net/emoticons/v1/%s/1.0",
+        EMOTE_SET_DOWNLOAD_URL = "https://api.twitch.tv/kraken/chat/emoticon_images?emotesets=%s";
 
     private String data = null;
 
@@ -61,7 +62,7 @@ public class HandleData
             isSuccessfulConnectMsg = data.contains("001");
             isUserStateUpdate = data.contains("USERSTATE");
             isRoomstateData = data.contains("ROOMSTATE");
-            isLocalMessage = data.substring(0, 4).contains("EEE");
+            isLocalMessage = data.equals("EEE: Incorrect login information!");
         }
     }
 
@@ -199,6 +200,7 @@ public class HandleData
 
                     if ((c == 32 || index == lasChar) && !emoteDetected)
                     {
+
                         privMsgData.add(new Label(sb.toString()));
                         sb.setLength(0);
                     }
@@ -435,6 +437,7 @@ public class HandleData
             int emoteSetEndLocation = data.indexOf(';', emoteSetStart) + 1;
             StringBuilder sb = new StringBuilder();
             ArrayList<String> emoteSetIds = new ArrayList<>();
+            ArrayList<String> jsonToLookAtArray = new ArrayList<>();
 
             char[] rawEmoteSet = data.substring(emoteSetStart, emoteSetEndLocation).toCharArray();
 
@@ -453,91 +456,95 @@ public class HandleData
             {
                 for (String emoteID : emoteSetIds)
                 {
-                    String urlString = String.format(
-                        "https://api.twitch.tv/kraken/chat/emoticon_images?emotesets=%s", emoteID);
-                    log("Get link: " + urlString);
+                    String urlString = String.format(EMOTE_SET_DOWNLOAD_URL, emoteID);
+                    log("Emote set: " + emoteID + " Get link: " + urlString);
                     HttpGet getRequest = new HttpGet(urlString);
                     getRequest.addHeader("Accept", "application/vnd.twitchtv.v5+json");
                     getRequest.addHeader("Client-ID", CLIENT_ID);
                     HttpClient client = HttpClients.createSystem();
                     HttpResponse response = client.execute(getRequest);
-                    String jsonToLookAt = EntityUtils.toString(response.getEntity());
-                    Gson jsonParser = new Gson();
-
-                    JsonObject jsonObject = jsonParser.fromJson(jsonToLookAt, JsonObject.class);
-
-                    JsonObject innerObject = jsonObject.getAsJsonObject("emoticon_sets");
-
-                    JsonArray emoteJsonArray = innerObject.getAsJsonArray(emoteID);
-
-                    JsonElement innerArray;
-                    int count = 0;
-                    int size = emoteJsonArray.size() - 1;
-                    while (count <= size)
-                    {
-                        innerArray = emoteJsonArray.get(count);
-                        JsonObject keyValuePair = innerArray.getAsJsonObject();
-                        String id = keyValuePair.get("id").getAsString(),
-                            code = keyValuePair.get("code").getAsString();
-                        log("ID: " + id + " Code: " + code);
-                        switch (id)
-                        {
-                            case "4":
-                                code = ">(";
-                                break;
-                            case "8":
-                                code = ":o";
-                                break;
-                            case "3":
-                                code = ":D";
-                                break;
-                            case "14":
-                                code = "R)";
-                                break;
-                            case "11":
-                                code = ";)";
-                                break;
-                            case "9":
-                                code = "<3";
-                                break;
-                            case "13":
-                                code = ";p";
-                                break;
-                            case "12":
-                                code = ":p";
-                                break;
-                            case "2":
-                                code = ":(";
-                                break;
-                            case "1":
-                                code = ":)";
-                                break;
-                            case "5":
-                                code = ":z";
-                                break;
-                            case "7":
-                                code = "B)";
-                                break;
-                            case "6":
-                                code = "o_O";
-                                break;
-                            case "10":
-                                code = ":\\";
-                                break;
-                        }
-
-                        map.put(code, id);
-                        count++;
-                    }
-
-                    log("... Whew");
-
+                    jsonToLookAtArray.add(EntityUtils.toString(response.getEntity()));
                 }
             } catch(IOException e)
             {
                 log(e.getMessage());
             }
 
+            for (String jsonToLookAt : jsonToLookAtArray)
+            {
+                String emoteID = emoteSetIds.get(jsonToLookAtArray.indexOf(jsonToLookAt));
+
+                Gson jsonParser = new Gson();
+
+                JsonObject jsonObject = jsonParser.fromJson(jsonToLookAt, JsonObject.class);
+
+                JsonObject innerObject = jsonObject.getAsJsonObject("emoticon_sets");
+
+                JsonArray emoteJsonArray = innerObject.getAsJsonArray(emoteID);
+
+                JsonElement innerArray;
+                int count = 0;
+                int size = emoteJsonArray.size() - 1;
+                while (count <= size)
+                {
+                    innerArray = emoteJsonArray.get(count);
+                    JsonObject keyValuePair = innerArray.getAsJsonObject();
+                    String id = keyValuePair.get("id").getAsString(),
+                        code = keyValuePair.get("code").getAsString();
+
+                    // Fuck JSON escape sequences
+                    switch (id)
+                    {
+                        case "4":
+                            code = ">(";
+                            break;
+                        case "8":
+                            code = ":o";
+                            break;
+                        case "3":
+                            code = ":D";
+                            break;
+                        case "14":
+                            code = "R)";
+                            break;
+                        case "11":
+                            code = ";)";
+                            break;
+                        case "9":
+                            code = "<3";
+                            break;
+                        case "13":
+                            code = ";p";
+                            break;
+                        case "12":
+                            code = ":p";
+                            break;
+                        case "2":
+                            code = ":(";
+                            break;
+                        case "1":
+                            code = ":)";
+                            break;
+                        case "5":
+                            code = ":z";
+                            break;
+                        case "7":
+                            code = "B)";
+                            break;
+                        case "6":
+                            code = "o_O";
+                            break;
+                        case "10":
+                            code = ":\\";
+                            break;
+                    }
+
+                    map.put(code, id);
+                    count++;
+                }
+
+                log("Finished getting emotes for: " + emoteID);
+            }
         }
         return map;
     }

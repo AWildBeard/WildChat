@@ -58,7 +58,7 @@ public class TwitchConnect implements Runnable
 
             try
             {
-                if (acceptingMessages)
+                if (getAcceptingMessages())
                 {
                     log("messageSender sending: " + messages.peek());
                     os.write(messages.poll().getBytes());
@@ -133,9 +133,11 @@ public class TwitchConnect implements Runnable
             {
                 sendMessage("PONG " + tmpData.substring(5));
             }
-            else if (tmpData.equals(":tmi.twitch.tv NOTICE * :Login authentication failed"))
+            else if (tmpData.length() > 51 && tmpData.substring(0, 52).equals(
+                ":tmi.twitch.tv NOTICE * :Login authentication failed"))
             {
-                acceptingMessages = false;
+                log("Bad credentials received");
+                setAcceptingMessages(false);
                 try
                 {
                     outputStream.writeUTF("EEE: Incorrect login information!");
@@ -207,6 +209,11 @@ public class TwitchConnect implements Runnable
             });
         }
     }
+
+    private synchronized void setAcceptingMessages(boolean acceptingMessages)
+    { this.acceptingMessages = acceptingMessages; }
+
+    private synchronized boolean getAcceptingMessages() { return this.acceptingMessages; }
 
     // Send a message to the Twitch IRC
     public synchronized void sendMessage(String command)

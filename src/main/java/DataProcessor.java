@@ -59,6 +59,7 @@ public class DataProcessor implements Runnable
 
             // Compute all the stuffs
             final ArrayList<Image> badges = dataHandler.getBadges();
+            final String displayName = dataHandler.getDisplayName();
 
             // Compute all the stuffs
             WildChat.session.setBadgeSignatures(dataHandler.getBadgeSignatures());
@@ -70,7 +71,7 @@ public class DataProcessor implements Runnable
             if (! WildChat.session.isMapSet()) // No spam twitch. Twitch no likey
                 WildChat.session.setEmoteCodesAndIDs(dataHandler.getEmoteCodesAndIDs());
 
-            Platform.runLater(() -> WildChat.userList.addUser(WildChat.client.getNick(), badges));
+            Platform.runLater(() -> WildChat.userList.addUser(displayName, badges));
         }
         else if (dataHandler.isSuccessfulConnectMsg())
         {
@@ -87,7 +88,11 @@ public class DataProcessor implements Runnable
             log("Incorrect user credentials entered"); // only local message sent out at this time
             WildChat.credentialsAvailable = false;
 
-            Platform.runLater(() -> WildChat.displayMessage("> Incorrect login credentials entered!"));
+            Platform.runLater(() -> {
+                WildChat.displayMessage("> Incorrect login credentials entered!");
+                WildChat.displayMessage("> You must restart this application to " +
+                    "enter correct credentials for twitch.tv.");
+            });
         }
         else if (dataHandler.isRoomstateData())
         {
@@ -108,7 +113,8 @@ public class DataProcessor implements Runnable
                 );
             }
 
-            Platform.runLater(() -> WildChat.userList.addUser(uName));
+            if (! uName.equals(WildChat.client.getNick()))
+                Platform.runLater(() -> WildChat.userList.addUser(uName));
         }
         else if (dataHandler.isUserLeaveMsg())
         {
