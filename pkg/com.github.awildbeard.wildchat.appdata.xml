@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2017 Michael Mitchell -->
+<component type="desktop">
+  <id>com.github.awildbeard.wildchat.desktop</id>
+  <metadata_license>CC0</metadata_license>
+  <name>Wild Chat</name>
+  <summary>Customizable Twitch Chat Client</summary>
+  <description>
+		  <p>
+				  Wild Chat is a fully customizable twitch chat client 
+				  utilizing the twitch IRC and various other twitch related
+				  API's to give the user an unparraled experience
+	      </p>
+  </description>
+</component>

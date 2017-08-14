@@ -102,7 +102,7 @@ public class WildChat extends Application
 
     static String textFill, backgroundColor, highlightColor, uiAccentColor, highlightTextColor;
 
-    private final String VERSION = "v1.1.32-1";
+    private final String VERSION = "v1.1.32-2";
 
     static double messageFontSize, uiFont;
 

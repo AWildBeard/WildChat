@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Wild Chat
+GenericName=Twitch Chat Client
+Comment=A fully customizable Twitch chat client
+Categories=Utility;
+Exec=/usr/lib/jvm/java-8-openjdk/jre/bin/java -jar /usr/share/wildchat/WildChat.jar --no-debug
+Icon=wild-chat
+Terminal=false
+Type=Application
+Keywords=Twitch;
