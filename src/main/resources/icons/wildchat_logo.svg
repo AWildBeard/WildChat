@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="67.733337mm"
+   height="67.733337mm"
+   viewBox="0 0 67.733337 67.733337"
+   version="1.1"
+   id="svg4710"
+   inkscape:version="0.92+devel unknown"
+   sodipodi:docname="wildchat.svg"
+   inkscape:export-filename="/media/stuff/design/wildchat/wildchat_orange2.png"
+   inkscape:export-xdpi="192"
+   inkscape:export-ydpi="192">
+  <defs
+     id="defs4704" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="1.5369922"
+     inkscape:cx="104.972"
+     inkscape:cy="168.23493"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     inkscape:document-rotation="0"
+     showgrid="false"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0"
+     inkscape:window-width="1440"
+     inkscape:window-height="810"
+     inkscape:window-x="-124"
+     inkscape:window-y="81"
+     inkscape:window-maximized="0" />
+  <metadata
+     id="metadata4707">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-127.63561,-274.96589)">
+    <g
+       id="g4680"
+       transform="matrix(1.124445,0,0,1.124445,103.34134,86.488914)"
+       style="fill:#000000;fill-opacity:1"
+       inkscape:export-xdpi="192"
+       inkscape:export-ydpi="192">
+      <circle
+         r="30.118563"
+         cy="197.73634"
+         cx="51.724129"
+         id="path4611"
+         style="color:#000000;overflow:visible;opacity:1;vector-effect:none;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1.34661186;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:markers fill stroke" />
+      <path
+         sodipodi:nodetypes="czszczczcssscczzcssccsc"
+         inkscape:connector-curvature="0"
+         id="path4267-3-1"
+         d="m 47.523662,169.5628 c 1.63253,3.48583 0.826304,6.57172 -0.39377,9.04699 -1.220074,2.47527 -2.347946,2.85269 -4.007686,6.60761 -1.65975,3.75492 -1.124064,6.02611 -1.028364,9.15368 0.0957,3.12757 -0.383669,5.23006 -1.597659,6.23892 0.62547,-0.93435 0.637216,-5.19396 -0.310158,-8.17339 -0.947374,-2.97943 -3.453811,-5.98512 -2.911124,-9.13361 -1.844572,2.09282 -1.170067,3.18633 -1.585877,4.77253 -0.4158,1.5862 -1.413571,2.90791 -2.355711,4.23782 -2.02269,2.87518 -3.89795,6.9418 -3.89795,12.15068 0,12.65603 9.59273,22.82961 22.24877,22.82961 12.65604,0 22.42085,-10.25988 22.42085,-22.91591 0,-4.89752 -2.507423,-11.16194 -6.671423,-15.33964 -1.28652,-1.22536 -2.64333,-2.83432 -2.35744,-4.88023 0,0 -1.385762,1.28253 -0.495673,5.49405 0.890089,4.21152 -1.963724,7.7605 -2.390094,9.55255 -0.42638,1.79205 -0.58447,4.1702 0.8967,6.38456 -2.08585,-1.07168 -3.17956,-4.51985 -2.69803,-7.73544 0.48153,-3.21559 1.72243,-5.44382 1.2016,-9.17595 -0.52083,-3.73212 -2.73232,-4.92514 -2.85989,-9.03379 -1.99952,2.92183 -0.884531,7.09698 -3.161631,9.19999 0.495688,-4.61062 -1.7377,-5.57201 -2.73969,-8.65482 -1.00199,-3.0828 -0.04706,-6.9308 -5.30575,-10.62621 z"
+         style="color:#000000;overflow:visible;vector-effect:none;fill:#f09200;fill-opacity:1;stroke:none;stroke-width:2.12768531;stroke-opacity:1;paint-order:markers fill stroke" />
+    </g>
+  </g>
+</svg>
