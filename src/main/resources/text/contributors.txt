@@ -1,3 +1,4 @@
-AWildBeard - Code
-HexDSL - Testing
+AWildBeard - Code, UI Design, Advocate
+Cheeseness - Artwork, Advice
+HexDSL - Testing, Advocate
 NuSuey - Testing, Complaints

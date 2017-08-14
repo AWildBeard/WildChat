@@ -29,7 +29,7 @@ application. The application ships by default with a dark theme.
 
 #### Contributing
 
-Please see [CONTRIBUTING.md](https://github.com/AWildBeard/WildChat/bolb/develop/CONTRIBUTING.md)
+Please see [CONTRIBUTING.md](https://github.com/AWildBeard/WildChat/blob/develop/CONTRIBUTING.md)
 
 ### <a name="linux"></a>Linux users
 

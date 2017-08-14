@@ -1,3 +1,17 @@
+/*
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import javafx.application.Platform;
 
 import java.io.*;
@@ -26,7 +40,7 @@ public class TwitchConnect implements Runnable
 
     private static PipedInputStream pipedInputStream = new PipedInputStream();
 
-    private boolean acceptingMessages = true;
+    private boolean acceptingMessages = true, messageReceiverRunning = false;
 
     public TwitchConnect(Client client) { this.client = client; }
 
@@ -41,6 +55,10 @@ public class TwitchConnect implements Runnable
         log("messageSender running");
         while (! Thread.currentThread().isInterrupted())
         {
+            // Some thread safety?
+            while (! getMessageReceiverRunning())
+                ;
+
             try
             {
                 // Don't spam twitch. It doesn't like it.
@@ -73,6 +91,10 @@ public class TwitchConnect implements Runnable
 
     private final Thread messageProcessor = new Thread(() ->
     {
+        // Some thread safety?
+        while (! getMessageReceiverRunning())
+            ;
+
         DataInputStream inputStream = null;
         ExecutorService executor = Executors.newFixedThreadPool(10);
         try
@@ -123,6 +145,7 @@ public class TwitchConnect implements Runnable
         DataOutputStream outputStream = new DataOutputStream(pipedOutputStream);
 
         log("messageReceiver service running");
+        setMessageReceiverRunning(true);
         while (! Thread.currentThread().isInterrupted())
         {
             // Don't add the received data directly to the StringProperty.
@@ -214,6 +237,11 @@ public class TwitchConnect implements Runnable
     { this.acceptingMessages = acceptingMessages; }
 
     private synchronized boolean getAcceptingMessages() { return this.acceptingMessages; }
+
+    private synchronized void setMessageReceiverRunning(boolean messageReceiverRunning)
+    { this.messageReceiverRunning = messageReceiverRunning; }
+
+    private synchronized boolean getMessageReceiverRunning() { return this.messageReceiverRunning; }
 
     // Send a message to the Twitch IRC
     public synchronized void sendMessage(String command)

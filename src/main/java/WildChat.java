@@ -13,14 +13,18 @@
  */
 
 import javafx.application.Application;
-import javafx.application.Platform;
 import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.geometry.*;
+import javafx.geometry.Insets;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
@@ -44,7 +48,7 @@ public class WildChat extends Application
 {
     private static String[] launchArgs;
 
-    private Stage primaryStage = null;
+    private static Stage primaryStage = null;
 
     private Scene root;
 
@@ -98,7 +102,7 @@ public class WildChat extends Application
 
     static String textFill, backgroundColor, highlightColor, uiAccentColor, highlightTextColor;
 
-    private final String VERSION = "v1.1.31-2";
+    private final String VERSION = "v1.1.32-1";
 
     static double messageFontSize, uiFont;
 
@@ -250,7 +254,7 @@ public class WildChat extends Application
         initUI();
 
         this.primaryStage.setScene(root);
-        this.primaryStage.setTitle("WildChat");
+        this.primaryStage.setTitle("WildChat - " + VERSION);
 
         // CTRL+Q exit application
         this.primaryStage.getScene().getAccelerators().put(
@@ -348,6 +352,16 @@ public class WildChat extends Application
         mainContentHolder.setStyle("-fx-background-color: " + uiAccentColor + ";");
 
         root.getStylesheets().add("css/stylesheet.css");
+
+        primaryStage.getIcons().addAll(
+            new Image(WildChat.class.getResourceAsStream("icons/wildchat_logo_1024.png")),
+            new Image(WildChat.class.getResourceAsStream("icons/wildchat_logo_512.png")),
+            new Image(WildChat.class.getResourceAsStream("icons/wildchat_logo_256.png")),
+            new Image(WildChat.class.getResourceAsStream("icons/wildchat_logo_128.png")),
+            new Image(WildChat.class.getResourceAsStream("icons/wildchat_logo_64.png")),
+            new Image(WildChat.class.getResourceAsStream("icons/wildchat_logo_32.png")),
+            new Image(WildChat.class.getResourceAsStream("icons/wildchat_logo_16.png"))
+        );
 
         log("Populating the message holder");
         for (int count = 0 ; count <= 125 ; count++)
@@ -494,36 +508,35 @@ public class WildChat extends Application
     {
         BorderPane contentHolder = new BorderPane();
         VBox controller = new VBox(), holder = new VBox();
-
         Label title = new Label("About WildChat"),
             githubPage = new Label("https://github.com/AWildBeard/WildChat"),
             verNum = new Label(VERSION),
-            contributors = new Label("Contributors:");
-
+            contributors = new Label("(Alphabetically) Contributors:");
         Button exitButton = new Button("Exit");
-
-        title.setAlignment(Pos.CENTER);
-        styleUILabel(title);
-        BorderPane.setMargin(title, new Insets(25, 0, 0, 0));
-
         Scanner fileReader = new Scanner(getClass().getResourceAsStream("text/contributors.txt"));
+        ImageView logoView = new ImageView(
+            new Image(
+                WildChat.class.getResourceAsStream("icons/wildchat_logo_128.png")
+            )
+        );
+
+        // This has to be here to maintain the way things are supposed to appear
+        holder.getChildren().addAll(title, githubPage, logoView, verNum, contributors);
+
+        while (fileReader.hasNextLine())
+            holder.getChildren().add(new Label(fileReader.nextLine()));
 
         exitButton.setOnAction(e ->
         {
             userListPane.setContent(userList);
-            messagePane.setVvalue(1.0);
             messagePane.vvalueProperty().bind(messageHolder.heightProperty());
             messagePane.setContent(messageHolder);
         });
-
-        controller.getChildren().add(exitButton);
-        contentHolder.setTop(title);
-        contentHolder.setCenter(holder);
-        holder.setAlignment(Pos.CENTER);
-        holder.setSpacing(30.0);
-        holder.getChildren().addAll(githubPage, verNum, contributors);
-        while (fileReader.hasNextLine())
-            holder.getChildren().add(new Label(fileReader.nextLine()));
+        githubPage.setOnMouseClicked(e ->
+            BareBonesBrowserLaunch.openURL("https://github.com/AWildBeard/WildChat")
+        );
+        githubPage.setOnMouseEntered(event -> primaryStage.getScene().setCursor(Cursor.HAND));
+        githubPage.setOnMouseExited(event -> primaryStage.getScene().setCursor(Cursor.DEFAULT));
 
         for (Node label : holder.getChildren())
         {
@@ -533,30 +546,31 @@ public class WildChat extends Application
                 ((Label) label).setAlignment(Pos.CENTER);
             }
         }
+
         githubPage.setStyle("-fx-text-fill: dodgerblue;" +
             "-fx-underline: true;" +
             "-fx-font-size: " + uiFont + ";");
-
-        githubPage.setOnMouseClicked(e ->
-            getHostServices().showDocument("https://github.com/AWildBeard/WildChat")
-        );
-        githubPage.setOnMouseEntered(event -> primaryStage.getScene().setCursor(Cursor.HAND));
-        githubPage.setOnMouseExited(event -> primaryStage.getScene().setCursor(Cursor.DEFAULT));
-
+        holder.setSpacing(30.0);
+        holder.setAlignment(Pos.CENTER);
+        styleUILabel(title);
+        BorderPane.setMargin(holder, new Insets(45, 0, 45, 0));
+        title.setAlignment(Pos.CENTER);
+        BorderPane.setAlignment(holder, Pos.CENTER);
         styleButton(exitButton);
+
+        controller.getChildren().add(exitButton);
+        contentHolder.setCenter(holder);
         exitButton.minWidthProperty().bind(controller.minWidthProperty());
         VBox.setMargin(exitButton, new Insets(7, 0, 0, 0));
-        BorderPane.setAlignment(holder, Pos.CENTER);
-        BorderPane.setAlignment(title, Pos.CENTER);
-
         controller.minWidthProperty().bind(userListPane.widthProperty());
         contentHolder.minWidthProperty().bind(messagePane.widthProperty());
         contentHolder.minHeightProperty().bind(messagePane.heightProperty());
+
         userListPane.setContent(controller);
         messagePane.vvalueProperty().unbind();
         messagePane.setVvalue(0.0);
         messagePane.setContent(contentHolder);
-
+        fileReader.close();
     }
 
     private void showConnectWindow()
@@ -567,7 +581,7 @@ public class WildChat extends Application
         TextField streamerField = new TextField();
         streamerField.setPromptText("Streamer");
         Button confirmButton = new Button("Confirm"),
-               cancelButton = new Button("Cancel");
+            cancelButton = new Button("Cancel");
 
         styleUILabel(title);
 
@@ -891,7 +905,8 @@ public class WildChat extends Application
 
         styleButton(colorPickerButton);
         colorPickerButton.setOnAction(e ->
-            getHostServices().showDocument("https://duckduckgo.com/?q=color+Picker&ia=answer"));
+            BareBonesBrowserLaunch.openURL("https://duckduckgo.com/?q=color+picker&ia=answer")
+        );
 
         messageFontLabel.setAlignment(Pos.CENTER_RIGHT);
         uiFontLabel.setAlignment(Pos.CENTER_RIGHT);
@@ -1010,14 +1025,14 @@ public class WildChat extends Application
         // TODO: END
     }
     
-    private void styleCircle(Circle circleToStyle, String color)
+    static void styleCircle(Circle circleToStyle, String color)
     {
         circleToStyle.setStyle("-fx-fill: " + color + ";" +
                         "-fx-stroke-width: 3px;" +
                         "-fx-stroke: derive(" + color + ", 100%)");
     }
 
-    private void styleTextField(TextField textFieldToStyle, double scale)
+    static void styleTextField(TextField textFieldToStyle, double scale)
     {
         textFieldToStyle.setMaxWidth(scale * uiFont);
         textFieldToStyle.setAlignment(Pos.CENTER_LEFT);
@@ -1027,7 +1042,7 @@ public class WildChat extends Application
             "-fx-border-color: " + uiAccentColor + ";");
     }
 
-    private void styleTextField(TextField textFieldToStyle)
+    static void styleTextField(TextField textFieldToStyle)
     {
         textFieldToStyle.setAlignment(Pos.CENTER_LEFT);
         textFieldToStyle.setStyle("-fx-font-size: " + uiFont + ";" +
@@ -1036,32 +1051,36 @@ public class WildChat extends Application
             "-fx-border-color: " + uiAccentColor + ";");
     }
 
-    private void styleUILabel(Label labelToStyle)
+    static void styleUILabel(Label labelToStyle)
     {
         labelToStyle.setStyle("-fx-font-size: " + uiFont + ";" +
             "-fx-text-fill: " + textFill + ";");
     }
 
-    private void styleButton(Button buttonToStyle)
+    static void styleButton(Button buttonToStyle)
     {
         buttonToStyle.setStyle("-fx-font-size: " + uiFont + ";" +
             "-fx-text-fill: " + textFill + ";" +
             "-fx-background-color: " + uiAccentColor + ";");
 
         buttonToStyle.setOnMouseEntered(e ->
+        {
+            primaryStage.getScene().setCursor(Cursor.HAND);
             buttonToStyle.setStyle("-fx-font-size: " + uiFont + ";" +
                 "-fx-text-fill: " + highlightTextColor + ";" +
-                "-fx-background-color: " + highlightColor + ";")
-        );
+                "-fx-background-color: " + highlightColor + ";");
+        });
 
         buttonToStyle.setOnMouseExited(e ->
+        {
+            primaryStage.getScene().setCursor(Cursor.DEFAULT);
             buttonToStyle.setStyle("-fx-font-size: " + uiFont + ";" +
                 "-fx-text-fill: " + textFill + ";" +
-                "-fx-background-color: " + uiAccentColor + ";")
-        );
+                "-fx-background-color: " + uiAccentColor + ";");
+        });
     }
 
-    private void styleScrollBar(ScrollBar scrollBarToStyle)
+    static void styleScrollBar(ScrollBar scrollBarToStyle)
     {
         Node thumb = scrollBarToStyle.lookup(".thumb");
         Node track = scrollBarToStyle.lookup(".track");
@@ -1081,7 +1100,7 @@ public class WildChat extends Application
             decrementButton.setStyle("-fx-background-color: " + backgroundColor + ";");
     }
 
-    private void writeUISettingsToFile(UISettings settingsToWrite, File saveToFile)
+    static void writeUISettingsToFile(UISettings settingsToWrite, File saveToFile)
     {
         try
         {
@@ -1094,10 +1113,8 @@ public class WildChat extends Application
         }
     }
 
-    private void writeUISettingsToFile(UISettings settingsToWrite, String saveToFile)
-    {
-        writeUISettingsToFile(settingsToWrite, new File(saveToFile));
-    }
+    static void writeUISettingsToFile(UISettings settingsToWrite, String saveToFile)
+    { writeUISettingsToFile(settingsToWrite, new File(saveToFile)); }
 
     private void sendMessage(String message) { socketRunner.sendMessage(message.trim()); }
 
