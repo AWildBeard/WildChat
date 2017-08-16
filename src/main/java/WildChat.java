@@ -102,7 +102,7 @@ public class WildChat extends Application
 
     static String textFill, backgroundColor, highlightColor, uiAccentColor, highlightTextColor;
 
-    private final String VERSION = "v1.1.32-2";
+    private final String VERSION;
 
     static double messageFontSize, uiFont;
 
@@ -114,6 +114,25 @@ public class WildChat extends Application
 
     public WildChat()
     {
+        String version = null;
+        BufferedReader versionReader = new BufferedReader(
+            new InputStreamReader(
+                getClass().getResourceAsStream("text/version.txt")
+            )
+        );
+        try
+        {
+            version = versionReader.readLine();
+            versionReader.close();
+        } catch (IOException e)
+        {
+            version = "BETA BUILD";
+            log(e.getMessage());
+        } finally
+        {
+            VERSION = version;
+        }
+
         boolean canAccessCredentials,
                 canAccessUiSettings,
                 debug = true;
@@ -124,6 +143,7 @@ public class WildChat extends Application
             {
                 if (arg.equals("--no-debug"))
                     debug = false;
+
                 else if (arg.contains("--channel="))
                     initialChannel = "#" + arg.substring(arg.indexOf('=') + 1);
             }
