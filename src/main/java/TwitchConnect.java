@@ -20,45 +20,63 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import static logUtils.Logger.*;
+import static logUtils.Logger.log;
 
 public class TwitchConnect implements Runnable
 {
-    private DataInputStream is;
-
-    private DataOutputStream os;
-
     // Basically a first in first out array list that is also thread safe :D
     private static LinkedBlockingQueue<String> messages = new LinkedBlockingQueue<>();
-
+    private static PipedOutputStream pipedOutputStream = new PipedOutputStream();
+    private static PipedInputStream pipedInputStream = new PipedInputStream();
     // The client using the program. Contains the user name and OAUTH token.
     private final Client client;
-
-    private String initialChannel = null;
-
-    private static PipedOutputStream pipedOutputStream = new PipedOutputStream();
-
-    private static PipedInputStream pipedInputStream = new PipedInputStream();
-
-    private boolean acceptingMessages = true, messageReceiverRunning = false;
-
-    public TwitchConnect(Client client) { this.client = client; }
-
-    public TwitchConnect(Client client, String initialChannel)
+    private final Thread messageProcessor = new Thread(() ->
     {
-        this.client = client;
-        this.initialChannel = initialChannel;
-    }
+        // Some thread safety?
+        while (!getMessageReceiverRunning())
+            ;
 
+        DataInputStream inputStream = null;
+        ExecutorService executor =
+                Executors.newCachedThreadPool();
+        try
+        {
+            pipedInputStream.connect(pipedOutputStream);
+            inputStream = new DataInputStream(pipedInputStream);
+        } catch (IOException e)
+        {
+            log(e.getMessage());
+        }
+
+        if (inputStream != null)
+        {
+            while (!Thread.currentThread().isInterrupted())
+            {
+                String data = null;
+                try
+                {
+                    data = inputStream.readUTF();
+                } catch (IOException e)
+                {
+                    log(e.getMessage());
+                }
+                executor.execute(new DataProcessor(data));
+            }
+        }
+    });
+    private DataInputStream is;
+    private DataOutputStream os;
+    private String initialChannel = null;
+    private boolean acceptingMessages = true, messageReceiverRunning = false;
     private final Thread messageSender = new Thread(() ->
     {
-        log("messageSender running");
-        while (! Thread.currentThread().isInterrupted())
-        {
-            // Some thread safety?
-            while (! getMessageReceiverRunning())
-                ;
+        // Some thread safety?
+        while (!getMessageReceiverRunning())
+            ;
 
+        log("messageSender running");
+        while (!Thread.currentThread().isInterrupted())
+        {
             try
             {
                 // Don't spam twitch. It doesn't like it.
@@ -89,40 +107,16 @@ public class TwitchConnect implements Runnable
         }
     });
 
-    private final Thread messageProcessor = new Thread(() ->
+    public TwitchConnect(Client client)
     {
-        // Some thread safety?
-        while (! getMessageReceiverRunning())
-            ;
+        this.client = client;
+    }
 
-        DataInputStream inputStream = null;
-        ExecutorService executor = Executors.newFixedThreadPool(10);
-        try
-        {
-            pipedInputStream.connect(pipedOutputStream);
-            inputStream = new DataInputStream(pipedInputStream);
-        } catch(IOException e)
-        {
-            log(e.getMessage());
-        }
-
-        if (inputStream != null)
-        {
-            while (! Thread.currentThread().isInterrupted())
-            {
-                String data = null;
-                try
-                {
-                    data = inputStream.readUTF();
-                } catch (IOException e)
-                {
-                    log(e.getMessage());
-                }
-                executor.execute(new DataProcessor(data));
-            }
-        }
-
-    });
+    public TwitchConnect(Client client, String initialChannel)
+    {
+        this.client = client;
+        this.initialChannel = initialChannel;
+    }
 
     public void run()
     {
@@ -146,7 +140,7 @@ public class TwitchConnect implements Runnable
 
         log("messageReceiver service running");
         setMessageReceiverRunning(true);
-        while (! Thread.currentThread().isInterrupted())
+        while (!Thread.currentThread().isInterrupted())
         {
             // Don't add the received data directly to the StringProperty.
             // Check it for relevance before adding.
@@ -155,9 +149,8 @@ public class TwitchConnect implements Runnable
             if (tmpData.substring(0, 4).equals("PING"))
             {
                 sendMessage("PONG " + tmpData.substring(5));
-            }
-            else if (tmpData.length() > 51 && tmpData.substring(0, 52).equals(
-                ":tmi.twitch.tv NOTICE * :Login authentication failed"))
+            } else if (tmpData.length() > 51 && tmpData.substring(0, 52).equals(
+                    ":tmi.twitch.tv NOTICE * :Login authentication failed"))
             {
                 log("Bad credentials received");
                 setAcceptingMessages(false);
@@ -169,8 +162,7 @@ public class TwitchConnect implements Runnable
                     log(e.getMessage());
                 }
                 messages.clear();
-            }
-            else
+            } else
             {
                 try
                 {
@@ -199,7 +191,7 @@ public class TwitchConnect implements Runnable
             is = new DataInputStream(socket.getInputStream());
             os = new DataOutputStream(socket.getOutputStream());
             log("Connection started");
-        } catch(IOException e)
+        } catch (IOException e)
         {
             WildChat.connected = false;
             log(e.getMessage());
@@ -233,15 +225,25 @@ public class TwitchConnect implements Runnable
         }
     }
 
-    private synchronized void setAcceptingMessages(boolean acceptingMessages)
-    { this.acceptingMessages = acceptingMessages; }
+    private synchronized boolean getAcceptingMessages()
+    {
+        return this.acceptingMessages;
+    }
 
-    private synchronized boolean getAcceptingMessages() { return this.acceptingMessages; }
+    private synchronized void setAcceptingMessages(boolean acceptingMessages)
+    {
+        this.acceptingMessages = acceptingMessages;
+    }
+
+    private synchronized boolean getMessageReceiverRunning()
+    {
+        return this.messageReceiverRunning;
+    }
 
     private synchronized void setMessageReceiverRunning(boolean messageReceiverRunning)
-    { this.messageReceiverRunning = messageReceiverRunning; }
-
-    private synchronized boolean getMessageReceiverRunning() { return this.messageReceiverRunning; }
+    {
+        this.messageReceiverRunning = messageReceiverRunning;
+    }
 
     // Send a message to the Twitch IRC
     public synchronized void sendMessage(String command)

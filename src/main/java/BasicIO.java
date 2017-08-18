@@ -29,9 +29,14 @@ public class BasicIO
 {
 
     // Do not instantiate
-    private BasicIO() {}
+    private BasicIO()
+    {
+    }
 
-    public static boolean isEOLChar(int b) { return b == 0x0A || b == 0x0B || b == 0x0C || b == 0x0D; }
+    public static boolean isEOLChar(int b)
+    {
+        return b == 0x0A || b == 0x0B || b == 0x0C || b == 0x0D;
+    }
 
     public static char[] readLine(InputStream stream)
     {
@@ -49,7 +54,7 @@ public class BasicIO
 
             // While chars[index] is not an EOL character, read the next char in and increase the size
             // of the char array by 1
-            while (! isEOLChar((chars[index++] = (char) stream.read())))
+            while (!isEOLChar((chars[index++] = (char) stream.read())))
                 chars = Arrays.copyOf(chars, index + 1);
         } catch (IOException e)
         {
@@ -86,7 +91,13 @@ public class BasicIO
         return buffer.toString();
     }
 
-    public static Map<String, String> getEnvVars() { return System.getenv(); }
+    public static Map<String, String> getEnvVars()
+    {
+        return System.getenv();
+    }
 
-    public static String getEnvVars(String variable) { return System.getenv(variable); }
+    public static String getEnvVars(String variable)
+    {
+        return System.getenv(variable);
+    }
 }

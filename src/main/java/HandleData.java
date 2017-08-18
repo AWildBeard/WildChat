@@ -37,21 +37,18 @@ import static logUtils.Logger.log;
 public class HandleData
 {
     public static final String CLIENT_ID = "fb7mlvnq5fgh7isjrx0ce14f27f6nq",
-        EMOTE_DOWNLOAD_URL = "http://static-cdn.jtvnw.net/emoticons/v1/%s/1.0",
-        EMOTE_SET_DOWNLOAD_URL = "https://api.twitch.tv/kraken/chat/emoticon_images?emotesets=%s";
-
-    private String data = null;
-
-    private boolean isPrivMsg = false,
-        isUserJoinMsg = false,
-        isUserLeaveMsg = false,
-        isSuccessfulConnectMsg = false,
-        isUserStateUpdate = false,
-        hasEmoteData = false,
-        isRoomstateData = false,
-        isLocalMessage = false;
-
+            EMOTE_DOWNLOAD_URL = "http://static-cdn.jtvnw.net/emoticons/v1/%s/1.0",
+            EMOTE_SET_DOWNLOAD_URL = "https://api.twitch.tv/kraken/chat/emoticon_images?emotesets=%s";
     private final char[] RAW_DATA;
+    private String data = null;
+    private boolean isPrivMsg = false,
+            isUserJoinMsg = false,
+            isUserLeaveMsg = false,
+            isSuccessfulConnectMsg = false,
+            isUserStateUpdate = false,
+            hasEmoteData = false,
+            isRoomstateData = false,
+            isLocalMessage = false;
 
     public HandleData(String data)
     {
@@ -65,10 +62,8 @@ public class HandleData
         if (data.contains("PRIVMSG"))
         {
             isPrivMsg = true;
-            hasEmoteData = ! data.contains("emotes=;");
-        }
-
-        else
+            hasEmoteData = !data.contains("emotes=;");
+        } else
         {
             isPrivMsg = false;
             isUserJoinMsg = data.contains("JOIN");
@@ -143,14 +138,13 @@ public class HandleData
                 // Get emotes in the message from twitch
                 for (String id : emoteIDs)
                 {
-                    if (! Emotes.hasEmote(id))
+                    if (!Emotes.hasEmote(id))
                     {
                         log("Getting emote: " + id);
                         Emotes.cacheEmote(new Image(
-                            String.format(EMOTE_DOWNLOAD_URL, id), true), id);
-                    }
-                    else
-                        log("Already have emote: " + id);
+                                String.format(EMOTE_DOWNLOAD_URL, id), true), id);
+                    } else
+                    { log("Already have emote: " + id); }
                 }
                 sb.setLength(0);
 
@@ -188,7 +182,7 @@ public class HandleData
                 // Add the words to the final message and all emotes too.
                 int lasChar = rawMessage.length - 1;
                 boolean emoteDetected;
-                for (int index = 0 ; index < rawMessage.length ; index++)
+                for (int index = 0; index < rawMessage.length; index++)
                 {
                     emoteDetected = false;
                     char c = rawMessage[index];
@@ -202,7 +196,9 @@ public class HandleData
                             emoteDetected = true;
                             privMsgData.add(new ImageView(Emotes.getEmote(emoteIDs.get(count))));
                             while (index != row[1])
+                            {
                                 index++; // skip over the emote data
+                            }
                         }
                         count++;
                     }
@@ -220,8 +216,7 @@ public class HandleData
                     }
                 }
                 log("Finished emote operation..");
-            }
-            else
+            } else
             {
                 int lastChar = rawMessage.length;
                 int index = 0;
@@ -229,7 +224,7 @@ public class HandleData
                 for (char c : rawMessage)
                 {
                     index++;
-                    if ( c != 32)
+                    if (c != 32)
                     {
                         sb.append(c);
                     }
@@ -243,7 +238,7 @@ public class HandleData
             }
         }
 
-        return  privMsgData;
+        return privMsgData;
     }
 
     public String getUserNameColor()
@@ -259,9 +254,9 @@ public class HandleData
             categoryStart = data.indexOf("color=") + 6; // Always 6. Length of color declaration
             endOfCategoryLocation = data.indexOf(';', categoryStart);
 
-            if (! (categoryStart == endOfCategoryLocation))
+            if (!(categoryStart == endOfCategoryLocation))
             { // Message has color data
-                for (int count = categoryStart ; count <= endOfCategoryLocation ; count++)
+                for (int count = categoryStart; count <= endOfCategoryLocation; count++)
                 {
                     if (count != endOfCategoryLocation)
                         sb.append(RAW_DATA[count]);
@@ -269,8 +264,7 @@ public class HandleData
                     else
                         userNameColor = sb.toString();
                 }
-            }
-            else
+            } else
             { // Message does not have color data
                 final String RED = "#d60027", BLUE = "#0066cc", GREEN = "#15c39a";
 
@@ -306,7 +300,7 @@ public class HandleData
         {
             // Grab the displayName
             int categoryStart = data.indexOf("display-name=") + 13,
-                endOfCategoryLocation = data.indexOf(';', categoryStart);
+                    endOfCategoryLocation = data.indexOf(';', categoryStart);
 
             if (categoryStart == endOfCategoryLocation)
                 return getUserName();
@@ -327,20 +321,21 @@ public class HandleData
         {
             badges = new ArrayList<>();
 
-        for (String badge : getBadgeSignatures())
-            if (Badges.hasBadge(badge))
+            for (String badge : getBadgeSignatures())
             {
-                log("Already have key: " + badge);
-                badges.add(Badges.getBadge(badge));
-            }
-            else
-            {
-                log("Do not have key: " + badge);
-                if (Badges.getValue(badge) != null)
+                if (Badges.hasBadge(badge))
                 {
-                    Image badgeImage = new Image(Badges.getValue(badge), true);
-                    Badges.cacheBadge(badgeImage, badge);
-                    badges.add(badgeImage);
+                    log("Already have key: " + badge);
+                    badges.add(Badges.getBadge(badge));
+                } else
+                {
+                    log("Do not have key: " + badge);
+                    if (Badges.getValue(badge) != null)
+                    {
+                        Image badgeImage = new Image(Badges.getValue(badge), true);
+                        Badges.cacheBadge(badgeImage, badge);
+                        badges.add(badgeImage);
+                    }
                 }
             }
         }
@@ -361,7 +356,7 @@ public class HandleData
             int categoryStart = data.indexOf("badges=") + 7; // Always 7. Length of badges declaration
             int endOfCategoryLocation = data.indexOf(';', categoryStart);
 
-            if (! (categoryStart == endOfCategoryLocation))
+            if (!(categoryStart == endOfCategoryLocation))
             { // Message has badges data
                 for (int count = categoryStart; count <= endOfCategoryLocation; count++)
                 {
@@ -375,7 +370,7 @@ public class HandleData
                         // End of badge name found
                         String badgeNameString = sb.toString();
 
-                        if (! Badges.getValidBadges().contains(badgeNameString))
+                        if (!Badges.getValidBadges().contains(badgeNameString))
                         {
                             sb.setLength(0);
                             continue;
@@ -392,9 +387,8 @@ public class HandleData
                         badgeSignatures.add(badgeNameString + "/" + badgeVersion);
 
                         sb.setLength(0); // Clear the StringBuilder
-                    }
-                    else
-                        sb.append(RAW_DATA[count]);
+                    } else
+                    { sb.append(RAW_DATA[count]); }
                 }
                 log("Calculated badge signatures");
             }
@@ -415,8 +409,7 @@ public class HandleData
             int endOfNameLocation = data.indexOf("!", nameStart);
             userName = data.substring(nameStart + 1, endOfNameLocation);
             log("Calculated userName: " + userName);
-        }
-        else if ((isUserJoinMsg || isUserLeaveMsg))
+        } else if ((isUserJoinMsg || isUserLeaveMsg))
         {
             int nameStart = (data.indexOf(':'));
             int endOfNameLocation = (data.indexOf('!', nameStart));
@@ -461,8 +454,7 @@ public class HandleData
                 {
                     emoteSetIds.add(sb.toString());
                     sb.setLength(0);
-                }
-                else
+                } else
                     sb.append(c);
             }
 
@@ -479,7 +471,7 @@ public class HandleData
                     HttpResponse response = client.execute(getRequest);
                     jsonToLookAtArray.add(EntityUtils.toString(response.getEntity()));
                 }
-            } catch(IOException e)
+            } catch (IOException e)
             {
                 log(e.getMessage());
             }
@@ -504,7 +496,7 @@ public class HandleData
                     innerArray = emoteJsonArray.get(count);
                     JsonObject keyValuePair = innerArray.getAsJsonObject();
                     String id = keyValuePair.get("id").getAsString(),
-                        code = keyValuePair.get("code").getAsString();
+                            code = keyValuePair.get("code").getAsString();
 
                     // Fuck JSON escape sequences
                     switch (id)
@@ -563,17 +555,38 @@ public class HandleData
         return map;
     }
 
-    public boolean isUserJoinMsg() { return isUserJoinMsg; }
+    public boolean isUserJoinMsg()
+    {
+        return isUserJoinMsg;
+    }
 
-    public boolean isPrivMsg() { return isPrivMsg; }
+    public boolean isPrivMsg()
+    {
+        return isPrivMsg;
+    }
 
-    public boolean isUserLeaveMsg() { return isUserLeaveMsg; }
+    public boolean isUserLeaveMsg()
+    {
+        return isUserLeaveMsg;
+    }
 
-    public boolean isSuccessfulConnectMsg() { return isSuccessfulConnectMsg; }
+    public boolean isSuccessfulConnectMsg()
+    {
+        return isSuccessfulConnectMsg;
+    }
 
-    public boolean isUserStateUpdate() { return isUserStateUpdate; }
+    public boolean isUserStateUpdate()
+    {
+        return isUserStateUpdate;
+    }
 
-    public boolean isLocalMessage() { return isLocalMessage; }
+    public boolean isLocalMessage()
+    {
+        return isLocalMessage;
+    }
 
-    public boolean isRoomstateData() { return isRoomstateData; }
+    public boolean isRoomstateData()
+    {
+        return isRoomstateData;
+    }
 }

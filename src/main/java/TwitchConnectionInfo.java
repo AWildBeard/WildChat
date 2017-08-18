@@ -20,7 +20,13 @@ public class TwitchConnectionInfo
 
     private TwitchConnectionInfo() {}
 
-    public static String getIrcChatTwitchTv() { return IRC_CHAT_TWITCH_TV; }
+    public static String getIrcChatTwitchTv()
+    {
+        return IRC_CHAT_TWITCH_TV;
+    }
 
-    public static int getPort() { return PORT; }
+    public static int getPort()
+    {
+        return PORT;
+    }
 }

@@ -19,36 +19,65 @@ import java.util.Map;
 public class Session
 {
     private static String channel = null;
+    boolean mapSet = false;
     private String clientColor = null, clientDisplayName = null;
-
     private ArrayList<String> badgeSignatures = null;
-
     private Map<String, String> emoteCodesAndIDs = new HashMap<>();
 
-    boolean mapSet = false;
+    public Session()
+    {
+        clearData();
+    }
 
-    public Session() { clearData(); }
+    public static String getChannel()
+    {
+        return channel;
+    }
 
-    public static String getChannel() { return channel; }
+    public void setChannel(String newChannel)
+    {
+        channel = newChannel;
+    }
 
-    public ArrayList<String> getBadgeSignatures() { return badgeSignatures; }
+    public static void clearData()
+    {
+        channel = null;
+    }
 
-    public String getClientColor() { return clientColor; }
+    public ArrayList<String> getBadgeSignatures()
+    {
+        return badgeSignatures;
+    }
 
-    public String getClientDisplayName() { return clientDisplayName; }
+    public void setBadgeSignatures(ArrayList<String> newBadgeSigs)
+    {
+        badgeSignatures = newBadgeSigs;
+    }
 
-    public Map<String, String> getEmoteCodesAndIDs() { return emoteCodesAndIDs; }
+    public String getClientColor()
+    {
+        return clientColor;
+    }
 
-    public boolean isMapSet() { return mapSet; }
+    public void setClientColor(String newClientColor)
+    {
+        clientColor = newClientColor;
+    }
 
-    public void setChannel(String newChannel) { channel = newChannel;}
-
-    public void setBadgeSignatures(ArrayList<String> newBadgeSigs) { badgeSignatures = newBadgeSigs; }
-
-    public void setClientColor(String newClientColor) { clientColor = newClientColor; }
+    public String getClientDisplayName()
+    {
+        return clientDisplayName;
+    }
 
     public void setClientDisplayName(String newClientDisplayName)
-    { clientDisplayName = newClientDisplayName; }
+    {
+        clientDisplayName = newClientDisplayName;
+    }
+
+    public Map<String, String> getEmoteCodesAndIDs()
+    {
+        return emoteCodesAndIDs;
+    }
 
     public void setEmoteCodesAndIDs(Map<String, String> emoteCodesAndIDs)
     {
@@ -59,8 +88,8 @@ public class Session
         mapSet = true;
     }
 
-    public static void clearData()
+    public boolean isMapSet()
     {
-        channel = null;
+        return mapSet;
     }
 }

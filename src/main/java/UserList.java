@@ -19,10 +19,11 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import javafx.scene.paint.Paint;
-import javafx.scene.text.Font;
 
 import java.util.ArrayList;
+
+import static UISettings.ReadOnlyUISettings.getTextFill;
+import static UISettings.ReadOnlyUISettings.getUiFont;
 
 public class UserList extends VBox
 {
@@ -51,11 +52,14 @@ public class UserList extends VBox
 
         HBox userContainter = new HBox();
         Label userNameLabel = new Label(userName);
-        userNameLabel.setFont(Font.font(WildChat.uiFont));
-        userNameLabel.setTextFill(Paint.valueOf(WildChat.textFill));
+        userNameLabel.setStyle("-fx-font-size: " + getUiFont() + ";" +
+                "-fx-text-fill: " + getTextFill() + ";");
+
+        userNameLabel.setCache(true);
 
         userContainter.getChildren().add(userNameLabel);
         userContainter.setSpacing(3.0);
+        userContainter.setCache(true);
 
         this.getChildren().add(userContainter);
     }
@@ -63,11 +67,19 @@ public class UserList extends VBox
     public Integer indexOfUsersHBox(String userToSearchFor)
     {
         for (Node hbox : this.getChildren())
+        {
             if (hbox instanceof HBox)
+            {
                 for (Node node : ((HBox) hbox).getChildren())
+                {
                     if (node instanceof Label)
+                    {
                         if (((Label) node).getText().equals(userToSearchFor))
-                            return this.getChildren().indexOf(hbox);
+                        { return this.getChildren().indexOf(hbox); }
+                    }
+                }
+            }
+        }
 
         return null;
     }
@@ -89,28 +101,29 @@ public class UserList extends VBox
 
             // Reuse the users name
             for (Node node : alreadyLoadedHBox.getChildren())
-            {
                 if (node instanceof Label)
-                {
                     userName = (Label) node;
-                }
-            }
 
             for (Image img : badges)
             {
-                newHBox.getChildren().add(new ImageView(img));
+                ImageView badge = new ImageView(img);
+                badge.setCache(true);
+                newHBox.getChildren().add(badge);
             }
 
             if (userName == null)
                 throw new IllegalArgumentException("Failed to find username despite finding it earlier");
 
+            if (! userName.isCache())
+                userName.setCache(true);
+
             newHBox.getChildren().add(userName);
 
             this.getChildren().remove(indexOfUsersHBox.intValue());
 
+            newHBox.setCache(true);
             this.getChildren().add(indexOfUsersHBox, newHBox);
-        }
-        else
+        } else
             addUser(userToSearchFor, badges);
     }
 
@@ -121,5 +134,8 @@ public class UserList extends VBox
             this.getChildren().remove(index.intValue());
     }
 
-    public void removeAllUsers() { this.getChildren().clear(); }
+    public void removeAllUsers()
+    {
+        this.getChildren().clear();
+    }
 }

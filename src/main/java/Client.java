@@ -31,14 +31,10 @@ public class Client implements Serializable
         setNick(nick);
     }
 
-    // Mutators
-    public void setOauth(String oauth)
+    // Accessors
+    public String getNick()
     {
-        //  Must be a length of 30
-        if ((oauth = oauth.trim()).length() != 30)
-            throw new IllegalOauthKey("OAUTH token is the wrong length. Need: 30 Received: " + oauth.length());
-
-        this.oauth = oauth;
+        return this.nick;
     }
 
     public void setNick(String nick)
@@ -46,10 +42,26 @@ public class Client implements Serializable
         this.nick = nick.toLowerCase().trim();
     }
 
-    // Accessors
-    public String getNick() { return this.nick; }
+    public String getOauth()
+    {
+        return this.oauth;
+    }
 
-    public String getOauth() { return this.oauth; }
+    // Mutators
+    public void setOauth(String oauth)
+    {
+        //  Must be a length of 30
+        if ((oauth = oauth.trim()).length() != 30)
+        {
+            throw new IllegalOauthKey(
+                    "OAUTH token is the wrong length. " + "Need: 30 Received: " + oauth.length());
+        }
 
-    public boolean isReady() { return (oauth != null && nick != null);}
+        this.oauth = oauth;
+    }
+
+    public boolean isReady()
+    {
+        return (oauth != null && nick != null);
+    }
 }

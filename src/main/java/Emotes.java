@@ -27,14 +27,20 @@ public class Emotes
 
     public static void cacheEmote(Image emote, String emoteID)
     {
-        if (! emoteIDAtIndex.contains(emoteID))
+        if (!emoteIDAtIndex.contains(emoteID))
         {
             downloadedEmotes.add(emote);
             emoteIDAtIndex.add(emoteID);
         }
     }
 
-    public static boolean hasEmote(String emoteID) { return emoteID != null && emoteIDAtIndex.contains(emoteID); }
+    public static boolean hasEmote(String emoteID)
+    {
+        return emoteID != null && emoteIDAtIndex.contains(emoteID);
+    }
 
-    public static Image getEmote(String emoteID) { return downloadedEmotes.get(emoteIDAtIndex.indexOf(emoteID)); }
+    public static Image getEmote(String emoteID)
+    {
+        return downloadedEmotes.get(emoteIDAtIndex.indexOf(emoteID));
+    }
 }
