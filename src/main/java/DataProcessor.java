@@ -14,6 +14,7 @@
 
 import javafx.application.Platform;
 import javafx.geometry.Orientation;
+import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
@@ -21,6 +22,8 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.FlowPane;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import static UISettings.ReadOnlyUISettings.*;
 import static logUtils.Logger.log;
@@ -29,9 +32,12 @@ public class DataProcessor implements Runnable
 {
     private String data;
 
+    private HandleData dataHandler = null;
+
     public DataProcessor(String dataToProcess)
     {
         this.data = dataToProcess;
+        dataHandler = new HandleData(data);
         if (! isInitialized())
             setSettings(WildChat.uiSettings);
     }
@@ -71,25 +77,60 @@ public class DataProcessor implements Runnable
             userName = new Label(displayName);
 
             if (color != null)
-            {
                 userName.setStyle("-fx-font-size: " + getMessageFontSize() + ";" +
                         "-fx-text-fill: " + color + ";");
-            } else
-            {
+
+            else
                 userName.setStyle("-fx-font-size: " + getMessageFontSize() + ";" +
                         "-fx-text-fill: " + getTextFill() + ";");
-            }
 
             userName.setCache(true);
             holder.getChildren().addAll(userName, messageSeperator);
         }
 
+        boolean isFirst = true, isAction = false;
         for (Node node : msgData)
         {
             if (node instanceof Label)
             {
-                node.setStyle("-fx-font-size: " + getMessageFontSize() + ";" +
-                        "-fx-text-fill: " + getTextFill() + ";");
+                String potentialLink = ((Label) node).getText();
+                String linkBegin = null;
+                if (potentialLink.length() > 9)
+                    linkBegin = potentialLink.substring(0, 8);
+
+                if (isFirst)
+                {
+                    if (((Label) node).getText().contains("ACTION"))
+                    {
+                        log("Action message detected");
+                        isAction = true;
+                        isFirst = false;
+                        continue;
+                    }
+                }
+
+                if (isAction)
+                {
+                    node.setStyle("-fx-font-size: " + getMessageFontSize() + ";" +
+                            "-fx-text-fill: " + getActionColor() + ";");
+                } else if (linkBegin != null && (linkBegin.contains("http://") || linkBegin.contains("https://")))
+                {
+                    if (potentialLink.matches(".+"))
+                    { // Is a link
+                        log("Found link!");
+                        node.setStyle("-fx-text-fill: dodgerblue;" +
+                                "-fx-underline: true;" +
+                                "-fx-font-size: " + getUiFont() + ";");
+                        node.setOnMouseClicked(event -> BareBonesBrowserLaunch.openURL(potentialLink));
+                        node.setOnMouseEntered(event -> WildChat.userList.getScene().setCursor(Cursor.HAND));
+                        node.setOnMouseExited(event -> WildChat.userList.getScene().setCursor(Cursor.DEFAULT));
+                    }
+                } else
+                {
+                    node.setStyle("-fx-font-size: " + getMessageFontSize() + ";" +
+                            "-fx-text-fill: " + getTextFill() + ";");
+                }
+
                 node.setCache(true);
             }
 
@@ -102,16 +143,14 @@ public class DataProcessor implements Runnable
     public void run()
     {
         if (data == null)
-        { return; }
+            return;
 
         log(data);
-
-        HandleData dataHandler = new HandleData(data);
 
         if (dataHandler.isPrivMsg())
         {
             if (!WildChat.connectedToChannel)
-            { return; }
+                return;
 
             log("PRIVMSG received");
 

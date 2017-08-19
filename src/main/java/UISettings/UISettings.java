@@ -18,7 +18,8 @@ import java.io.Serializable;
 public class UISettings implements Serializable
 {
     private String textFill = "#e5e6ea", backgroundColor = "#25262b",
-            highlightColor = "#1e90ff", UIAccentColor = "#383c4a", highlightTextColor = "#000000";
+            highlightColor = "#1e90ff", UIAccentColor = "#383c4a",
+            highlightTextColor = "#000000", actionColor = "#68f218";
 
     private double messageFontSize = 14.0, uiFont = 14.0;
 
@@ -92,5 +93,15 @@ public class UISettings implements Serializable
     public void setUiFont(double incommingUIFont)
     {
         uiFont = incommingUIFont;
+    }
+
+    public String getActionColor()
+    {
+        return actionColor;
+    }
+
+    public void setActionColor(String incommingActionColor)
+    {
+        actionColor = incommingActionColor;
     }
 }

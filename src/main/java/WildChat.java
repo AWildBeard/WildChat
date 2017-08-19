@@ -47,7 +47,8 @@ public class WildChat extends Application
     static Client client = null;
     static Session session = new Session();
     static UserList userList = new UserList();
-    static String textFill, backgroundColor, highlightColor, uiAccentColor, highlightTextColor;
+    static String textFill, backgroundColor, highlightColor,
+            uiAccentColor, highlightTextColor, actionColor;
     static double messageFontSize, uiFont;
     static volatile boolean connected = false,
             connectionMessageReceived = false,
@@ -173,14 +174,16 @@ public class WildChat extends Application
         if (FileUtil.hasData(uiSettingsFile))
         {
             log("UISettings.UISettings file has data");
+            File uiSettingFile = new File(uiSettingsFile);
             try
             {
-                ObjectInputStream is = new ObjectInputStream(new FileInputStream(new File(uiSettingsFile)));
+                ObjectInputStream is = new ObjectInputStream(new FileInputStream(uiSettingFile));
                 uiSettings = (UISettings) is.readObject();
                 is.close();
             } catch (IOException | ClassNotFoundException e)
             {
-                log("Unrecoverable UISettings.UISettings read operation");
+                log("Failed to import UISettings... Assuming corrupt file, deleting");
+                uiSettingFile.delete();
             }
         }
 
@@ -192,6 +195,7 @@ public class WildChat extends Application
         uiAccentColor = uiSettings.getUIAccentColor();
         messageFontSize = uiSettings.getMessageFontSize();
         uiFont = uiSettings.getUiFont();
+        actionColor = uiSettings.getActionColor();
     }
 
     static void styleCircle(Circle circleToStyle, String color)
@@ -501,8 +505,10 @@ public class WildChat extends Application
         connectButton.setOnAction(e ->
         {
             if (connectionMessageReceived)
-            { showConnectWindow(); } else
-            { displayMessage("> Not connected to twitch.tv yet!"); }
+                showConnectWindow();
+
+            else
+                displayMessage("> Not connected to twitch.tv yet!");
         });
         disconnectButton.setOnAction(e -> disconnectFromChannel());
         uiSettingsButton.setOnAction(e -> showUISettingsWindow());
@@ -510,11 +516,10 @@ public class WildChat extends Application
         messagePane.vvalueProperty().addListener((obs, oldVal, newVal) ->
         {
             if (newVal.doubleValue() != 1.0)
-            { messagePane.vvalueProperty().unbind(); } else
-            {
-                messagePane.vvalueProperty()
-                        .bind(messageHolder.heightProperty());
-            }
+                messagePane.vvalueProperty().unbind();
+
+            else
+                messagePane.vvalueProperty().bind(messageHolder.heightProperty());
         });
 
         aboutButton.setOnAction(e -> showAboutWindow());
@@ -531,8 +536,7 @@ public class WildChat extends Application
                         String message = messageField.getText().trim();
                         if (message.length() > 0)
                         {
-                            sendMessage(
-                                    "PRIVMSG " + Session.getChannel() + " :" + message);
+                            sendMessage("PRIVMSG " + Session.getChannel() + " :" + message);
 
                             if (!hasUserState)
                             {
@@ -596,9 +600,11 @@ public class WildChat extends Application
                                     sb.append(c);
                                 }
 
-                                displayMessage(DataProcessor.formatMessage(
+                                FlowPane result = DataProcessor.formatMessage(
                                         clientImageBadges, session.getClientDisplayName(),
-                                        session.getClientColor(), messageNodes));
+                                        session.getClientColor(), messageNodes);
+
+                                displayMessage(result);
                             }
                         }
                     } else
@@ -823,7 +829,7 @@ public class WildChat extends Application
         oauthTextField.setOnKeyPressed(e ->
         {
             if (e.getCode().equals(KeyCode.ENTER))
-            { confirmButton.fire(); }
+                confirmButton.fire();
         });
 
         styleUILabel(title);
@@ -877,25 +883,29 @@ public class WildChat extends Application
                 backgroundColorLabel = new Label("Background Color"),
                 highlightColorLabel = new Label("HighLight Color"),
                 uiAccentColorLabel = new Label("UI Accent Color"),
-                highlightTextColorLabel = new Label("Highlight Text Color");
+                highlightTextColorLabel = new Label("Highlight Text Color"),
+                actionColorLabel = new Label("Action Text Color");
         TextField messageFontInput = new TextField(String.valueOf((int) uiSettings.getMessageFontSize())),
                 uiFontInput = new TextField(String.valueOf((int) uiSettings.getUiFont())),
                 textColorInput = new TextField(textFill),
                 backgroundColorInput = new TextField(backgroundColor),
                 highlighColorInput = new TextField(highlightColor),
                 uiAccentColorInput = new TextField(uiAccentColor),
-                highlightTextColorInput = new TextField(highlightTextColor);
+                highlightTextColorInput = new TextField(highlightTextColor),
+                actionColorInput = new TextField(actionColor);
         Circle textColorCircle = new Circle(20.0),
                 backgroundColorCircle = new Circle(20.0),
                 highlighColorCircle = new Circle(20.0),
                 uiAccentColorCircle = new Circle(20.0),
-                highlightTextColorCircle = new Circle(20.0);
+                highlightTextColorCircle = new Circle(20.0),
+                actionColorCircle = new Circle(20.0);
 
         styleCircle(textColorCircle, textFill);
         styleCircle(backgroundColorCircle, backgroundColor);
         styleCircle(highlighColorCircle, highlightColor);
         styleCircle(uiAccentColorCircle, uiAccentColor);
         styleCircle(highlightTextColorCircle, highlightTextColor);
+        styleCircle(actionColorCircle, actionColor);
 
         styleTextField(messageFontInput, 2.85);
         styleTextField(uiFontInput, 2.85);
@@ -904,6 +914,7 @@ public class WildChat extends Application
         styleTextField(highlighColorInput, 6.1);
         styleTextField(uiAccentColorInput, 6.1);
         styleTextField(highlightTextColorInput, 6.1);
+        styleTextField(actionColorInput, 6.1);
 
         styleUILabel(messageFontLabel);
         styleUILabel(uiFontLabel);
@@ -912,6 +923,7 @@ public class WildChat extends Application
         styleUILabel(highlightColorLabel);
         styleUILabel(uiAccentColorLabel);
         styleUILabel(highlightTextColorLabel);
+        styleUILabel(actionColorLabel);
 
         styleUILabel(title);
 
@@ -934,20 +946,10 @@ public class WildChat extends Application
             uiSettings.setHighlightColor(highlighColorInput.getText());
             uiSettings.setUIAccentColor(uiAccentColorInput.getText());
             uiSettings.setHighlightTextColor(highlightTextColorInput.getText());
+            uiSettings.setActionColor(actionColorInput.getText());
 
             log("recording ui setting data");
-
-            try
-            {
-                ObjectOutputStream os = new ObjectOutputStream(
-                        new FileOutputStream(new File(uiSettingsFile))
-                );
-                os.writeObject(uiSettings);
-                os.close();
-            } catch (IOException y)
-            {
-                log(y.getMessage());
-            }
+            writeUISettingsToFile(uiSettings, uiSettingsFile);
         });
 
         styleButton(resetButton);
@@ -964,6 +966,7 @@ public class WildChat extends Application
             highlighColorInput.setText(newSettings.getHighlightColor());
             uiAccentColorInput.setText(newSettings.getUIAccentColor());
             highlightTextColorInput.setText(newSettings.getHighlightTextColor());
+            actionColorInput.setText(newSettings.getActionColor());
         });
 
         styleButton(shareUISettingsButton);
@@ -977,14 +980,14 @@ public class WildChat extends Application
             if (saveToFile != null)
             {
                 UISettings newSettings = new UISettings();
-                newSettings
-                        .setMessageFontSize(Double.valueOf(messageFontInput.getText()));
+                newSettings.setMessageFontSize(Double.valueOf(messageFontInput.getText()));
                 newSettings.setUiFont(Double.valueOf(uiFontInput.getText()));
                 newSettings.setTextFill(textColorInput.getText());
                 newSettings.setBackgroundColor(backgroundColorInput.getText());
                 newSettings.setHighlightColor(highlighColorInput.getText());
                 newSettings.setUIAccentColor(uiAccentColorInput.getText());
                 newSettings.setHighlightTextColor(highlightTextColorInput.getText());
+                newSettings.setActionColor(actionColorInput.getText());
 
                 writeUISettingsToFile(newSettings, saveToFile);
             }
@@ -1018,18 +1021,17 @@ public class WildChat extends Application
                     uiSettings.setBackgroundColor(newSettings.getBackgroundColor());
                     uiSettings.setHighlightColor(newSettings.getHighlightColor());
                     uiSettings.setUIAccentColor(newSettings.getUIAccentColor());
-                    uiSettings
-                            .setHighlightTextColor(newSettings.getHighlightTextColor());
-                    messageFontInput.setText(
-                            String.valueOf((int) uiSettings.getMessageFontSize()));
-                    uiFontInput
-                            .setText(String.valueOf((int) uiSettings.getUiFont()));
+                    uiSettings.setHighlightTextColor(newSettings.getHighlightTextColor());
+                    uiSettings.setActionColor(newSettings.getActionColor());
+
+                    messageFontInput.setText(String.valueOf((int) uiSettings.getMessageFontSize()));
+                    uiFontInput.setText(String.valueOf((int) uiSettings.getUiFont()));
                     textColorInput.setText(uiSettings.getTextFill());
                     backgroundColorInput.setText(uiSettings.getBackgroundColor());
                     highlighColorInput.setText(uiSettings.getHighlightColor());
                     uiAccentColorInput.setText(uiSettings.getUIAccentColor());
-                    highlightTextColorInput
-                            .setText(uiSettings.getHighlightTextColor());
+                    highlightTextColorInput.setText(uiSettings.getHighlightTextColor());
+                    actionColorInput.setText(uiSettings.getActionColor());
                 }
             }
         });
@@ -1064,6 +1066,10 @@ public class WildChat extends Application
         contentHolder.add(highlightTextColorLabel, 0, 6);
         contentHolder.add(highlightTextColorInput, 1, 6);
         contentHolder.add(highlightTextColorCircle, 2, 6);
+        contentHolder.add(actionColorLabel, 0, 7);
+        contentHolder.add(actionColorInput, 1, 7);
+        contentHolder.add(actionColorCircle, 2, 7);
+
         controller.getChildren().addAll(closeButton, applyButton, resetButton,
                 shareUISettingsButton, importUISettingsButton, colorPickerButton);
 
@@ -1088,10 +1094,13 @@ public class WildChat extends Application
         ChangeListener<String> fontInputChangeListener = ((obs, oldVal, newVal) ->
         {
             if (newVal.isEmpty())
-            { ((StringProperty) obs).setValue(newVal); } else if (newVal.matches("\\d+") &&
-                    Integer.parseInt(newVal) <= 35)
-            { ((StringProperty) obs).setValue(newVal); } else
-            { ((StringProperty) obs).setValue(oldVal); }
+                ((StringProperty) obs).setValue(newVal);
+
+            else if (newVal.matches("\\d+") && Integer.parseInt(newVal) <= 35)
+                ((StringProperty) obs).setValue(newVal);
+
+            else
+                ((StringProperty) obs).setValue(oldVal);
         });
 
         messageFontInput.textProperty().addListener(fontInputChangeListener);
@@ -1104,9 +1113,9 @@ public class WildChat extends Application
             {
                 ((StringProperty) obs).setValue(newVal);
                 if (newVal.length() == 7)
-                { styleCircle(textColorCircle, newVal); }
+                    styleCircle(textColorCircle, newVal);
             } else
-            { ((StringProperty) obs).setValue(oldVal); }
+                ((StringProperty) obs).setValue(oldVal);
         });
         backgroundColorInput.textProperty().addListener((obs, oldVal, newVal) ->
         {
@@ -1114,9 +1123,9 @@ public class WildChat extends Application
             {
                 ((StringProperty) obs).setValue(newVal);
                 if (newVal.length() == 7)
-                { styleCircle(backgroundColorCircle, newVal); }
+                    styleCircle(backgroundColorCircle, newVal);
             } else
-            { ((StringProperty) obs).setValue(oldVal); }
+                ((StringProperty) obs).setValue(oldVal);
         });
         highlighColorInput.textProperty().addListener((obs, oldVal, newVal) ->
         {
@@ -1124,9 +1133,9 @@ public class WildChat extends Application
             {
                 ((StringProperty) obs).setValue(newVal);
                 if (newVal.length() == 7)
-                { styleCircle(highlighColorCircle, newVal); }
+                    styleCircle(highlighColorCircle, newVal);
             } else
-            { ((StringProperty) obs).setValue(oldVal); }
+                ((StringProperty) obs).setValue(oldVal);
         });
         uiAccentColorInput.textProperty().addListener((obs, oldVal, newVal) ->
         {
@@ -1134,9 +1143,9 @@ public class WildChat extends Application
             {
                 ((StringProperty) obs).setValue(newVal);
                 if (newVal.length() == 7)
-                { styleCircle(uiAccentColorCircle, newVal); }
+                    styleCircle(uiAccentColorCircle, newVal);
             } else
-            { ((StringProperty) obs).setValue(oldVal); }
+                ((StringProperty) obs).setValue(oldVal);
         });
         highlightTextColorInput.textProperty().addListener((obs, oldVal, newVal) ->
         {
@@ -1144,9 +1153,19 @@ public class WildChat extends Application
             {
                 ((StringProperty) obs).setValue(newVal);
                 if (newVal.length() == 7)
-                { styleCircle(highlightTextColorCircle, newVal); }
+                    styleCircle(highlightTextColorCircle, newVal);
             } else
-            { ((StringProperty) obs).setValue(oldVal); }
+                ((StringProperty) obs).setValue(oldVal);
+        });
+        actionColorInput.textProperty().addListener((obs, oldVal, newVal) ->
+        {
+            if (newVal.matches("#[a-fA-F0-9]{0,6}"))
+            {
+                ((StringProperty) obs).setValue(newVal);
+                if (newVal.length() == 7)
+                    styleCircle(actionColorCircle, newVal);
+            } else
+                ((StringProperty) obs).setValue(oldVal);
         });
         // TODO: END
     }

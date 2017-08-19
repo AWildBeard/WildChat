@@ -210,7 +210,6 @@ public class HandleData
 
                     if ((c == 32 || index == lasChar) && !emoteDetected)
                     {
-
                         privMsgData.add(new Label(sb.toString()));
                         sb.setLength(0);
                     }

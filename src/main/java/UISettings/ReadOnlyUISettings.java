@@ -26,6 +26,11 @@ public class ReadOnlyUISettings
         return settings.getTextFill();
     }
 
+    public static String getActionColor()
+    {
+        return settings.getActionColor();
+    }
+
     public static String getBackgroundColor()
     {
         return settings.getBackgroundColor();
