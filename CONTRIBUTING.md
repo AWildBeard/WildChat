@@ -1,7 +1,10 @@
-# Contributing
+# Contributing Guide for [Wild Chat](https://github.com/AWildBeard/WildChat)
 
-- If you have a suggestion, error to report, or general help to the project as a whole,
-  open a Issue and make it clear in the title as to what you want/ issue type etc.
-- NEWLINE Style
-- Fork, branch, test, pull request is the recommended way to contribute.
-- Remember to keep your fork up to date and ready to be merged on pull request submission.
+#### General Contributions:
+- If you have a suggestion, or error to report, open a [Issue](https://github.com/AWildBeard/WildChat/issues/new) and make it clear in the title as to what you want/ what the issue is etc.
+- Don't be afraid to ask questions, or email me. Find my info [here](https://github.com/AWildBeard)
+
+#### Code/ Direct Contributions to the REPO:
+- NEWLINE Style for code
+- Fork, branch, test, then pull request is the recommended way to contribute ANY code/ artwork etc.
+  - Remember to keep your fork up to date and ready to be merged on pull request submission.
