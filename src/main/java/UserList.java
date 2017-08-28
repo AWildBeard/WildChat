@@ -27,6 +27,7 @@ import static UISettings.ReadOnlyUISettings.getUiFont;
 
 public class UserList extends VBox
 {
+    private ArrayList<String> users = new ArrayList<>();
 
     public UserList() {}
 
@@ -60,6 +61,8 @@ public class UserList extends VBox
         userContainter.getChildren().add(userNameLabel);
         userContainter.setSpacing(3.0);
         userContainter.setCache(true);
+
+        users.add(userName);
 
         this.getChildren().add(userContainter);
     }
@@ -137,5 +140,10 @@ public class UserList extends VBox
     public void removeAllUsers()
     {
         this.getChildren().clear();
+    }
+
+    public ArrayList<String> getUsers()
+    {
+        return users;
     }
 }

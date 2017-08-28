@@ -28,6 +28,7 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
 import javafx.scene.shape.Circle;
 import javafx.scene.text.Text;
@@ -523,6 +524,60 @@ public class WildChat extends Application
         });
 
         aboutButton.setOnAction(e -> showAboutWindow());
+
+        mainContent.addEventFilter(KeyEvent.KEY_PRESSED, event ->
+        {
+            if (event.getCode() == KeyCode.TAB)
+            {
+                if (event.getTarget() instanceof TextField)
+                {
+                    event.consume();
+
+                    log("TAB pressed");
+                    String message = messageField.getText().trim();
+                    if (message.length() > 1)
+                    {
+                        log("Message: " + message);
+                        int lastWordIndex = message.lastIndexOf(" ") + 1;
+                        String word;
+
+                        if (lastWordIndex < 0)
+                            return;
+
+                        if (lastWordIndex == 0)
+                        {
+                            word = message;
+                        } else
+                        {
+                            word = message.substring(lastWordIndex);
+                        }
+
+                        log("Last word: " + word);
+
+                        if (!word.startsWith("@"))
+                            return;
+
+                        int wordLen = word.length() - 1;
+                        log("last word len: " + wordLen);
+                        for (String user : userList.getUsers())
+                        {
+                            String charsToMatch = user.substring(0, wordLen);
+                            charsToMatch = "@" + charsToMatch;
+                            log("User to match: " + charsToMatch);
+
+                            if (charsToMatch.equals(word))
+                            {
+                                log("MATCH!");
+                                message = message.substring(0, lastWordIndex);
+                                message += "@" + user;
+                                messageField.setText(message);
+                                messageField.positionCaret(message.length());
+                            }
+                        }
+                    }
+                }
+            }
+        });
 
         log("Setting message field interactions");
         messageField.setOnKeyPressed(event ->

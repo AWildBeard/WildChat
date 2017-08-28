@@ -53,9 +53,6 @@ public class DataProcessor implements Runnable
         messageSeperator.setStyle("-fx-font-size: " + getMessageFontSize() + ";" +
                 "-fx-text-fill: " + getTextFill() + ";");
 
-        messagePreAppen.setCache(true);
-        messageSeperator.setCache(true);
-
         holder.setOrientation(Orientation.HORIZONTAL);
         holder.setHgap(WildChat.messageFontSize * 0.33);
         holder.getChildren().add(messagePreAppen);
@@ -66,7 +63,6 @@ public class DataProcessor implements Runnable
             for (Image icon : badges)
             {
                 ImageView img = new ImageView(icon);
-                img.setCache(true);
                 holder.getChildren().add(img);
             }
         }
@@ -84,7 +80,6 @@ public class DataProcessor implements Runnable
                 userName.setStyle("-fx-font-size: " + getMessageFontSize() + ";" +
                         "-fx-text-fill: " + getTextFill() + ";");
 
-            userName.setCache(true);
             holder.getChildren().addAll(userName, messageSeperator);
         }
 
@@ -130,8 +125,6 @@ public class DataProcessor implements Runnable
                     node.setStyle("-fx-font-size: " + getMessageFontSize() + ";" +
                             "-fx-text-fill: " + getTextFill() + ";");
                 }
-
-                node.setCache(true);
             }
 
             holder.getChildren().add(node);

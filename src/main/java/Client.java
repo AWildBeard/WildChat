@@ -51,11 +51,22 @@ public class Client implements Serializable
     public void setOauth(String oauth)
     {
         //  Must be a length of 30
-        if ((oauth = oauth.trim()).length() != 30)
+        if ((oauth = oauth.trim()).length() < 30)
         {
             throw new IllegalOauthKey(
                     "OAUTH token is the wrong length. " + "Need: 30 Received: " + oauth.length());
         }
+        else
+        {
+            // oauth:
+            if (oauth.substring(0, 6).equals("oauth:"))
+                oauth = oauth.substring(6);
+
+            if (oauth.length() != 30)
+                throw new IllegalOauthKey(
+                        "OAUTH token is the wrong length. " + "Need: 30 Received: " + oauth.length());
+        }
+
 
         this.oauth = oauth;
     }
