@@ -220,7 +220,7 @@ public class TwitchConnect implements Runnable
             Platform.runLater(() ->
             {
                 WildChat.session.setChannel(initialChannel);
-                WildChat.displayMessage("> Joining channel " + initialChannel + "...");
+                WildChat.displayMessage("Joining channel " + initialChannel + "...");
             });
         }
     }

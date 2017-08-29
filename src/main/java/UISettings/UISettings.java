@@ -19,11 +19,24 @@ public class UISettings implements Serializable
 {
     private String textFill = "#e5e6ea", backgroundColor = "#25262b",
             highlightColor = "#1e90ff", UIAccentColor = "#383c4a",
-            highlightTextColor = "#000000", actionColor = "#68f218";
+            highlightTextColor = "#000000", actionColor = "#68f218",
+            messagePrefix = "> ";
 
     private double messageFontSize = 14.0, uiFont = 14.0;
 
+    private int windowWidth = 650, windowHeight = 400;
+
     public UISettings() {}
+
+    public String getMessagePrefix()
+    {
+        return messagePrefix;
+    }
+
+    public void setMessagePrefix(String incomingMessagePrefix)
+    {
+        messagePrefix = incomingMessagePrefix;
+    }
 
     public String getTextFill()
     {
@@ -103,5 +116,25 @@ public class UISettings implements Serializable
     public void setActionColor(String incommingActionColor)
     {
         actionColor = incommingActionColor;
+    }
+
+    public int getWindowWidth()
+    {
+        return windowWidth;
+    }
+
+    public void setWindowWidth(int incommingWindowWidth)
+    {
+        windowWidth = incommingWindowWidth;
+    }
+
+    public int getWindowHeight()
+    {
+        return windowHeight;
+    }
+
+    public void setWindowHeight(int incommingWindowHeight)
+    {
+        windowHeight = incommingWindowHeight;
     }
 }

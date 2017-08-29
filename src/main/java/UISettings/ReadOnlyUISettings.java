@@ -21,6 +21,11 @@ public class ReadOnlyUISettings
 
     private ReadOnlyUISettings() {}
 
+    public static String getMessagePrefix()
+    {
+        return settings.getMessagePrefix();
+    }
+
     public static String getTextFill()
     {
         return settings.getTextFill();
@@ -59,6 +64,16 @@ public class ReadOnlyUISettings
     public static double getUiFont()
     {
         return settings.getUiFont();
+    }
+
+    public static int getWindowWidth()
+    {
+        return settings.getWindowWidth();
+    }
+
+    public static int getWindowHeight()
+    {
+        return settings.getWindowHeight();
     }
 
     public static boolean isInitialized()
