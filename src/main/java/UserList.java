@@ -24,6 +24,7 @@ import java.util.ArrayList;
 
 import static UISettings.ReadOnlyUISettings.getTextFill;
 import static UISettings.ReadOnlyUISettings.getUiFont;
+import static logUtils.Logger.log;
 
 public class UserList extends VBox
 {
@@ -34,7 +35,10 @@ public class UserList extends VBox
     public void addUser(String userName, ArrayList<Image> badges)
     {
         if (badges == null)
+        {
             addUser(userName);
+            return;
+        }
 
         if (indexOfUsersHBox(userName) != null)
         {
