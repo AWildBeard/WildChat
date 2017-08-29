@@ -46,7 +46,7 @@ public class DataProcessor implements Runnable
                                          String color, ArrayList<Node> msgData)
     {
         FlowPane holder = new FlowPane();
-        Label userName = null, messagePreAppen = new Label(">"), messageSeperator = new Label(":");
+        Label userName = null, messagePreAppen = new Label(WildChat.uiSettings.getMessagePrefix()), messageSeperator = new Label(":");
 
         messagePreAppen.setStyle("-fx-font-size:" + getMessageFontSize() + ";" +
                 "-fx-text-fill: " + getTextFill() + ";");
@@ -187,7 +187,7 @@ public class DataProcessor implements Runnable
                 WildChat.connectionMessageReceived = true;
                 log("Connected to twitch.tv");
 
-                Platform.runLater(() -> WildChat.displayMessage("> Connected to twitch.tv!"));
+                Platform.runLater(() -> WildChat.displayMessage("Connected to twitch.tv!"));
             }
         } else if (dataHandler.isLocalMessage())
         {
@@ -196,8 +196,8 @@ public class DataProcessor implements Runnable
 
             Platform.runLater(() ->
             {
-                WildChat.displayMessage("> Incorrect login credentials entered!");
-                WildChat.displayMessage("> You must restart this application to " +
+                WildChat.displayMessage("Incorrect login credentials entered!");
+                WildChat.displayMessage("You must restart this application to " +
                         "enter correct credentials for twitch.tv.");
             });
         } else if (dataHandler.isRoomstateData())
@@ -214,7 +214,7 @@ public class DataProcessor implements Runnable
             {
                 WildChat.connectedToChannel = true;
                 Platform.runLater(() ->
-                        WildChat.displayMessage("> Connected to " + Session.getChannel() + "!")
+                        WildChat.displayMessage("Connected to " + Session.getChannel() + "!")
                 );
             }
 
