@@ -716,6 +716,7 @@ public class WildChat extends Application
             userListPane.setContent(userList);
             messagePane.vvalueProperty().bind(messageHolder.heightProperty());
             messagePane.setContent(messageHolder);
+            messageField.setDisable(false);
         });
         githubPage.setOnMouseClicked(e ->
                 BareBonesBrowserLaunch.openURL("https://github.com/AWildBeard/WildChat")
@@ -755,6 +756,7 @@ public class WildChat extends Application
         messagePane.vvalueProperty().unbind();
         messagePane.setVvalue(0.0);
         messagePane.setContent(contentHolder);
+        messageField.setDisable(true);
         fileReader.close();
     }
 
@@ -805,6 +807,7 @@ public class WildChat extends Application
             messagePane.setVvalue(1.0);
             messagePane.vvalueProperty().bind(messageHolder.heightProperty());
             messagePane.setContent(messageHolder);
+            messageField.setDisable(false);
         });
 
         streamerField.setMaxWidth(250.0);
@@ -832,6 +835,7 @@ public class WildChat extends Application
         messagePane.vvalueProperty().unbind();
         messagePane.setVvalue(0.0);
         messagePane.setContent(contentHolder);
+        messageField.setDisable(true);
         title.requestFocus();
     }
 
@@ -989,6 +993,7 @@ public class WildChat extends Application
             messagePane.vvalueProperty().bind(messageHolder.heightProperty());
             messagePane.setContent(messageHolder);
             userListPane.setContent(userList);
+            messageField.setDisable(false);
         });
 
         styleButton(applyButton);
@@ -1145,6 +1150,7 @@ public class WildChat extends Application
 
         messagePane.setContent(dummy);
         userListPane.setContent(controller);
+        messageField.setDisable(true);
 
         ChangeListener<String> fontInputChangeListener = ((obs, oldVal, newVal) ->
         {
