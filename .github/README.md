@@ -29,7 +29,7 @@ application. The application ships by default with a dark theme.
 
 #### Contributing
 
-Please see [CONTRIBUTING.md](https://github.com/AWildBeard/WildChat/blob/develop/CONTRIBUTING.md)
+Please see [CONTRIBUTING.md](https://github.com/AWildBeard/WildChat/blob/develop/.github/CONTRIBUTING.md)
 
 ### <a name="linux"></a>Linux users
 
@@ -76,7 +76,7 @@ launch it.
 Please install Java from the 
 [Java Website](https://www.java.com/en/download/)
 and then download the ".jar" file from the
-[releases](https://github.com/AWildBeard/FileEncryptor/reieases) 
+[releases](https://github.com/AWildBeard/WildChat/releases) 
 page. Run the ".jar" file to launch the program.
 
 ### <a name="macos"></a>MacOS
@@ -84,5 +84,5 @@ page. Run the ".jar" file to launch the program.
 Please install Java from the 
 [Java Website](https://www.java.com/en/download/)
 and then download the ".jar" file from the
-[releases](https://github.com/AWildBeard/FileEncryptor/reieases) 
+[releases](https://github.com/AWildBeard/WildChat/releases) 
 page. Run the ".jar" file to launch the program.
