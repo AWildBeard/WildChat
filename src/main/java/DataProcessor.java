@@ -22,8 +22,6 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.FlowPane;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import static UISettings.ReadOnlyUISettings.*;
 import static logUtils.Logger.log;
@@ -43,10 +41,11 @@ public class DataProcessor implements Runnable
     }
 
     public static FlowPane formatMessage(ArrayList<Image> badges, String displayName,
-                                         String color, ArrayList<Node> msgData)
+                                         String color, ArrayList<Node> msgData, boolean isWhisper)
     {
         FlowPane holder = new FlowPane();
-        Label userName = null, messagePreAppen = new Label(WildChat.uiSettings.getMessagePrefix()), messageSeperator = new Label(":");
+        Label userName = null, messagePreAppen = new Label(WildChat.uiSettings.getMessagePrefix()),
+                messageSeperator = new Label(":");
 
         messagePreAppen.setStyle("-fx-font-size:" + getMessageFontSize() + ";" +
                 "-fx-text-fill: " + getTextFill() + ";");
@@ -86,6 +85,18 @@ public class DataProcessor implements Runnable
         boolean isFirst = true, isAction = false;
         for (Node node : msgData)
         {
+            if (isFirst)
+            {
+                isFirst = false;
+
+                if (((Label) node).getText().contains("ACTION"))
+                {
+                    log("Action message detected");
+                    isAction = true;
+                    continue;
+                }
+            }
+
             if (node instanceof Label)
             {
                 String potentialLink = ((Label) node).getText();
@@ -93,22 +104,17 @@ public class DataProcessor implements Runnable
                 if (potentialLink.length() > 9)
                     linkBegin = potentialLink.substring(0, 8);
 
-                if (isFirst)
-                {
-                    if (((Label) node).getText().contains("ACTION"))
-                    {
-                        log("Action message detected");
-                        isAction = true;
-                        isFirst = false;
-                        continue;
-                    }
-                }
-
                 if (isAction)
                 {
                     node.setStyle("-fx-font-size: " + getMessageFontSize() + ";" +
                             "-fx-text-fill: " + getActionColor() + ";");
-                } else if (linkBegin != null && (linkBegin.contains("http://") || linkBegin.contains("https://")))
+                } else if (isWhisper)
+                {
+                    node.setStyle("-fx-font-size: " + getMessageFontSize() + ";" +
+                            "-fx-text-fill: " + getWhisperTextColor() + ";");
+                }
+
+                if (linkBegin != null && (linkBegin.contains("http://") || linkBegin.contains("https://")))
                 {
                     if (potentialLink.matches(".+"))
                     { // Is a link
@@ -120,10 +126,6 @@ public class DataProcessor implements Runnable
                         node.setOnMouseEntered(event -> WildChat.userList.getScene().setCursor(Cursor.HAND));
                         node.setOnMouseExited(event -> WildChat.userList.getScene().setCursor(Cursor.DEFAULT));
                     }
-                } else
-                {
-                    node.setStyle("-fx-font-size: " + getMessageFontSize() + ";" +
-                            "-fx-text-fill: " + getTextFill() + ";");
                 }
             }
 
@@ -154,13 +156,41 @@ public class DataProcessor implements Runnable
             final ArrayList<Node> msgData = dataHandler.getPrivMsgData();
             final ArrayList<Image> badges = dataHandler.getBadges();
 
-            final FlowPane holder = formatMessage(badges, displayName, uColor, msgData);
+            final FlowPane holder = formatMessage(badges, displayName, uColor, msgData, false);
 
             Platform.runLater(() ->
             {
                 WildChat.userList.addUser(uName, badges);
                 WildChat.displayMessage(holder);
             });
+
+        } else if (dataHandler.isWhisperMsg())
+        {
+            log("Whisper message received");
+
+            // Compute all the stuffs
+            final String displayName = dataHandler.getDisplayName();
+            final String uName = dataHandler.getUserName();
+            final String uColor = dataHandler.getUserNameColor();
+            final ArrayList<Node> msgData = dataHandler.getWhisperMsgData();
+            final ArrayList<Image> badges = dataHandler.getBadges();
+
+            log(displayName);
+            log(uName);
+            log(uColor);
+            log(msgData.toString());
+            log(badges.toString());
+
+            final FlowPane holder = formatMessage(badges, displayName, uColor, msgData, true);
+
+            log(holder.toString());
+
+            Platform.runLater(() ->
+            {
+                WildChat.userList.addUser(uName, badges);
+                WildChat.displayMessage(holder);
+            });
+
         } else if (dataHandler.isUserStateUpdate())
         {
             log("User state update received");

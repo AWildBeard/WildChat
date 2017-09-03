@@ -20,7 +20,7 @@ public class UISettings implements Serializable
     private String textFill = "#e5e6ea", backgroundColor = "#25262b",
             highlightColor = "#1e90ff", UIAccentColor = "#383c4a",
             highlightTextColor = "#000000", actionColor = "#68f218",
-            messagePrefix = "> ";
+            whisperTextColor = "#f7ea00", messagePrefix = "> ";
 
     private double messageFontSize = 14.0, uiFont = 14.0;
 
@@ -116,6 +116,16 @@ public class UISettings implements Serializable
     public void setActionColor(String incommingActionColor)
     {
         actionColor = incommingActionColor;
+    }
+
+    public String getWhisperTextColor()
+    {
+        return whisperTextColor;
+    }
+
+    public void setWhisperTextColor(String incommingWhispTxtClr)
+    {
+        this.whisperTextColor = incommingWhispTxtClr;
     }
 
     public int getWindowWidth()

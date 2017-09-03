@@ -42,6 +42,7 @@ public class HandleData
     private final char[] RAW_DATA;
     private String data = null;
     private boolean isPrivMsg = false,
+            isWhisper = false,
             isUserJoinMsg = false,
             isUserLeaveMsg = false,
             isSuccessfulConnectMsg = false,
@@ -59,13 +60,8 @@ public class HandleData
 
     private void determineMessageType()
     {
-        if (data.contains("PRIVMSG"))
+        if ( ! ((isPrivMsg = data.contains("PRIVMSG")) || (isWhisper = data.contains("WHISPER"))))
         {
-            isPrivMsg = true;
-            hasEmoteData = !data.contains("emotes=;");
-        } else
-        {
-            isPrivMsg = false;
             isUserJoinMsg = data.contains("JOIN");
             isUserLeaveMsg = data.contains("PART");
             isSuccessfulConnectMsg = data.contains("001");
@@ -73,6 +69,30 @@ public class HandleData
             isRoomstateData = data.contains("ROOMSTATE");
             isLocalMessage = data.equals("EEE: Incorrect login information!");
         }
+
+        hasEmoteData = !data.contains("emotes=;");
+    }
+    public ArrayList<Node> getWhisperMsgData()
+    {
+        ArrayList<Node> whisperMsgData = null;
+
+        if (isWhisper)
+        {
+            // Grab the message
+            int categoryStart = data.indexOf(":", data.indexOf("WHISPER")) + 1;
+            String message = data.substring(categoryStart);
+            message = message.substring(0, message.length() - 1);
+
+            if (hasEmoteData)
+            {
+                whisperMsgData = getMsgDataWithEmotes(message);
+            } else
+            {
+                whisperMsgData = getMsgDataWithoutEmotes(message);
+            }
+        }
+
+        return whisperMsgData;
     }
 
     // PRIVMSG and USERSTATE
@@ -80,171 +100,188 @@ public class HandleData
     {
         ArrayList<Node> privMsgData = null;
 
-        if ((isPrivMsg || isUserStateUpdate))
+        if (isPrivMsg)
         {
-            privMsgData = new ArrayList<>();
             // Grab the message
             int categoryStart = data.indexOf(":", data.indexOf("PRIVMSG")) + 1;
             String message = data.substring(categoryStart);
-            char[] rawMessage = message.substring(0, message.length() - 1).toCharArray();
+            message = message.substring(0, message.length() - 1);
 
             if (hasEmoteData)
             {
-                ArrayList<String> emoteIDs = new ArrayList<>();
-                ArrayList<String> emoteIndex = new ArrayList<>();
-                int emoteStart = data.indexOf("emotes=") + 7;
-                int endEmoteCategory = data.indexOf(';', emoteStart) + 1;
-                StringBuilder sb = new StringBuilder();
-
-                char[] emoteDataChars = data.substring(emoteStart, endEmoteCategory).toCharArray();
-
-                int indexOfEmoteID = -1;
-                int countOfEmoteIndex = 0;
-                for (char c : emoteDataChars)
-                {
-                    if (c == ':')
-                    {
-                        emoteIDs.add(sb.toString());
-                        sb.setLength(0);
-                        indexOfEmoteID++;
-                        continue;
-                    }
-                    if (c == ',')
-                    {
-                        emoteIndex.add(sb.toString());
-                        emoteIDs.add(emoteIDs.get(indexOfEmoteID));
-                        countOfEmoteIndex++;
-                        sb.setLength(0);
-                        continue;
-                    }
-                    if (c == '/')
-                    {
-                        emoteIndex.add(sb.toString());
-                        countOfEmoteIndex++;
-                        sb.setLength(0);
-                        continue;
-                    }
-                    if (c == ';')
-                    {
-                        emoteIndex.add(sb.toString());
-                        sb.setLength(0);
-                        countOfEmoteIndex++;
-                        break;
-                    }
-
-                    sb.append(c);
-                }
-
-                // Get emotes in the message from twitch
-                for (String id : emoteIDs)
-                {
-                    if (!Emotes.hasEmote(id))
-                    {
-                        log("Getting emote: " + id);
-                        Emotes.cacheEmote(new Image(
-                                String.format(EMOTE_DOWNLOAD_URL, id), true), id);
-                    } else
-                    { log("Already have emote: " + id); }
-                }
-                sb.setLength(0);
-
-                int[][] emoteIndexes = new int[countOfEmoteIndex][2];
-                int firstNumber = 0;
-                for (String combinedIndex : emoteIndex)
-                {
-                    int indexGroupLength = combinedIndex.toCharArray().length;
-                    int index = 0;
-                    for (char c : combinedIndex.toCharArray())
-                    {
-                        index++;
-                        if (c != '-')
-                        {
-                            sb.append(c);
-                        }
-                        if (c == '-')
-                        {
-                            emoteIndexes[firstNumber][0] = Integer.parseInt(sb.toString());
-                            sb.setLength(0);
-                            continue;
-                        }
-                        if (index == indexGroupLength)
-                        {
-                            // + 1 to include last char
-                            emoteIndexes[firstNumber][1] = Integer.parseInt(sb.toString());
-                            sb.setLength(0);
-                        }
-                    }
-                    firstNumber++;
-                }
-
-                sb = new StringBuilder();
-
-                // Add the words to the final message and all emotes too.
-                int lasChar = rawMessage.length - 1;
-                boolean emoteDetected;
-                for (int index = 0; index < rawMessage.length; index++)
-                {
-                    emoteDetected = false;
-                    char c = rawMessage[index];
-
-                    int count = 0; // row count
-                    for (int[] row : emoteIndexes)
-                    {
-                        if (row[0] == index)
-                        {
-                            log("Emote detected");
-                            emoteDetected = true;
-                            privMsgData.add(new ImageView(Emotes.getEmote(emoteIDs.get(count))));
-                            while (index != row[1])
-                            {
-                                index++; // skip over the emote data
-                            }
-                        }
-                        count++;
-                    }
-
-                    if (c != 32 && !emoteDetected)
-                    {
-                        sb.append(c);
-                    }
-
-                    if ((c == 32 || index == lasChar) && !emoteDetected)
-                    {
-                        privMsgData.add(new Label(sb.toString()));
-                        sb.setLength(0);
-                    }
-                }
-                log("Finished emote operation..");
+                privMsgData = getMsgDataWithEmotes(message);
             } else
             {
-                int lastChar = rawMessage.length;
-                int index = 0;
-                StringBuilder sb = new StringBuilder();
-                for (char c : rawMessage)
-                {
-                    index++;
-                    if (c != 32)
-                    {
-                        sb.append(c);
-                    }
-
-                    if (c == 32 || index == lastChar)
-                    {
-                        privMsgData.add(new Label(sb.toString()));
-                        sb.setLength(0); // Clear the string builder
-                    }
-                }
+                privMsgData = getMsgDataWithoutEmotes(message);
             }
         }
 
         return privMsgData;
     }
 
+    private ArrayList<Node> getMsgDataWithoutEmotes(String specificData)
+    {
+        char[] rawMessage = specificData.toCharArray();
+        ArrayList<Node> msgData = new ArrayList<>();
+        int lastChar = rawMessage.length;
+        int index = 0;
+        StringBuilder sb = new StringBuilder();
+        for (char c : rawMessage)
+        {
+            index++;
+            if (c != 32)
+            {
+                sb.append(c);
+            }
+
+            if (c == 32 || index == lastChar)
+            {
+                msgData.add(new Label(sb.toString()));
+                sb.setLength(0); // Clear the string builder
+            }
+        }
+
+        return msgData;
+    }
+
+    private ArrayList<Node> getMsgDataWithEmotes(String specificData)
+    {
+        char[] rawMessage = specificData.toCharArray();
+        ArrayList<Node> msgData = new ArrayList<>();
+        ArrayList<String> emoteIDs = new ArrayList<>();
+        ArrayList<String> emoteIndex = new ArrayList<>();
+        int emoteStart = data.indexOf("emotes=") + 7;
+        int endEmoteCategory = data.indexOf(';', emoteStart) + 1;
+        StringBuilder sb = new StringBuilder();
+
+        char[] emoteDataChars = data.substring(emoteStart, endEmoteCategory).toCharArray();
+
+        int indexOfEmoteID = -1;
+        int countOfEmoteIndex = 0;
+        for (char c : emoteDataChars)
+        {
+            if (c == ':')
+            {
+                emoteIDs.add(sb.toString());
+                sb.setLength(0);
+                indexOfEmoteID++;
+                continue;
+            }
+            if (c == ',')
+            {
+                emoteIndex.add(sb.toString());
+                emoteIDs.add(emoteIDs.get(indexOfEmoteID));
+                countOfEmoteIndex++;
+                sb.setLength(0);
+                continue;
+            }
+            if (c == '/')
+            {
+                emoteIndex.add(sb.toString());
+                countOfEmoteIndex++;
+                sb.setLength(0);
+                continue;
+            }
+            if (c == ';')
+            {
+                emoteIndex.add(sb.toString());
+                sb.setLength(0);
+                countOfEmoteIndex++;
+                break;
+            }
+
+            sb.append(c);
+        }
+
+        // Get emotes in the message from twitch
+        for (String id : emoteIDs)
+        {
+            if (!Emotes.hasEmote(id))
+            {
+                log("Getting emote: " + id);
+                Emotes.cacheEmote(new Image(
+                        String.format(EMOTE_DOWNLOAD_URL, id), true), id);
+            } else
+            { log("Already have emote: " + id); }
+        }
+        sb.setLength(0);
+
+        int[][] emoteIndexes = new int[countOfEmoteIndex][2];
+        int firstNumber = 0;
+        for (String combinedIndex : emoteIndex)
+        {
+            int indexGroupLength = combinedIndex.toCharArray().length;
+            int index = 0;
+            for (char c : combinedIndex.toCharArray())
+            {
+                index++;
+                if (c != '-')
+                {
+                    sb.append(c);
+                }
+                if (c == '-')
+                {
+                    emoteIndexes[firstNumber][0] = Integer.parseInt(sb.toString());
+                    sb.setLength(0);
+                    continue;
+                }
+                if (index == indexGroupLength)
+                {
+                    // + 1 to include last char
+                    emoteIndexes[firstNumber][1] = Integer.parseInt(sb.toString());
+                    sb.setLength(0);
+                }
+            }
+            firstNumber++;
+        }
+
+        sb = new StringBuilder();
+
+        // Add the words to the final message and all emotes too.
+        int lasChar = rawMessage.length - 1;
+        boolean emoteDetected;
+        for (int index = 0; index < rawMessage.length; index++)
+        {
+            emoteDetected = false;
+            char c = rawMessage[index];
+
+            int count = 0; // row count
+            for (int[] row : emoteIndexes)
+            {
+                if (row[0] == index)
+                {
+                    log("Emote detected");
+                    emoteDetected = true;
+                    msgData.add(new ImageView(Emotes.getEmote(emoteIDs.get(count))));
+                    while (index != row[1])
+                    {
+                        index++; // skip over the emote data
+                    }
+                }
+                count++;
+            }
+
+            if (c != 32 && !emoteDetected)
+            {
+                sb.append(c);
+            }
+
+            if ((c == 32 || index == lasChar) && !emoteDetected)
+            {
+                msgData.add(new Label(sb.toString()));
+                sb.setLength(0);
+            }
+        }
+        log("Finished emote operation..");
+
+        return msgData;
+    }
+
     public String getUserNameColor()
     {
         String userNameColor = null;
 
-        if ((isPrivMsg || isUserStateUpdate))
+        if ((isPrivMsg || isUserStateUpdate || isWhisper))
         {
             int categoryStart = 0, endOfCategoryLocation = 0;
             StringBuilder sb = new StringBuilder();
@@ -295,7 +332,7 @@ public class HandleData
     {
         String displayName = null;
 
-        if ((isPrivMsg || isUserStateUpdate))
+        if ((isPrivMsg || isUserStateUpdate || isWhisper))
         {
             // Grab the displayName
             int categoryStart = data.indexOf("display-name=") + 13,
@@ -316,7 +353,7 @@ public class HandleData
     {
         ArrayList<Image> badges = null;
 
-        if (isPrivMsg || isUserStateUpdate)
+        if (isPrivMsg || isUserStateUpdate || isWhisper)
         {
             badges = new ArrayList<>();
 
@@ -346,7 +383,7 @@ public class HandleData
     {
         ArrayList<String> badgeSignatures = null;
 
-        if (isPrivMsg || isUserStateUpdate)
+        if (isPrivMsg || isUserStateUpdate || isWhisper)
         {
             badgeSignatures = new ArrayList<>();
             StringBuilder sb = new StringBuilder();
@@ -402,7 +439,7 @@ public class HandleData
     {
         String userName = null;
 
-        if (isPrivMsg)
+        if (isPrivMsg || isWhisper)
         {
             int nameStart = data.indexOf(":", data.indexOf("user-type="));
             int endOfNameLocation = data.indexOf("!", nameStart);
@@ -562,6 +599,11 @@ public class HandleData
     public boolean isPrivMsg()
     {
         return isPrivMsg;
+    }
+
+    public boolean isWhisperMsg()
+    {
+        return isWhisper;
     }
 
     public boolean isUserLeaveMsg()

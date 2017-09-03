@@ -56,6 +56,11 @@ public class ReadOnlyUISettings
         return settings.getHighlightTextColor();
     }
 
+    public static String getWhisperTextColor()
+    {
+        return settings.getWhisperTextColor();
+    }
+
     public static double getMessageFontSize()
     {
         return settings.getMessageFontSize();

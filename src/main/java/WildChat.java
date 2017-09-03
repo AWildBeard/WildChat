@@ -38,6 +38,7 @@ import javafx.stage.StageStyle;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Scanner;
 
 import static logUtils.Logger.log;
@@ -598,68 +599,138 @@ public class WildChat extends Application
                                 displayMessage(client.getNick() + " : " + message);
                             } else
                             {
-                                ArrayList<Image> clientImageBadges = null;
-                                ArrayList<Node> messageNodes = new ArrayList<>();
-                                StringBuilder sb = new StringBuilder();
-                                char[] rawMessage = message.toCharArray();
-
-                                if (session.getBadgeSignatures().size() >= 1)
+                                if (message.substring(0, 2).equals("/w"))
                                 {
-                                    clientImageBadges = new ArrayList<>();
+                                    int userStartIndex = message.indexOf(" ") + 1;
+                                    int endUserStart = message.indexOf(" ", userStartIndex);
+                                    String receivingUser = message.substring(userStartIndex, endUserStart);
+                                    String whisperMessage = message.substring(endUserStart +1);
 
-                                    for (String badge : session.getBadgeSignatures())
-                                    { clientImageBadges.add(Badges.getBadge(badge)); }
-                                }
+                                    ArrayList<Node> messageNodes = new ArrayList<>();
+                                    StringBuilder sb = new StringBuilder();
+                                    char[] rawMessage = whisperMessage.toCharArray();
 
-                                userList.addUser(client.getNick(), clientImageBadges);
-
-                                int messageLength = message.length();
-                                int index = 0;
-                                for (char c : rawMessage)
-                                {
-                                    index++;
-                                    if (c == 32 || index == messageLength)
+                                    int messageLength = whisperMessage.length();
+                                    int index = 0;
+                                    for (char c : rawMessage)
                                     {
-                                        if (index == messageLength)
-                                        { sb.append(c); }
-
-                                        String word = sb.toString();
-                                        if (session.getEmoteCodesAndIDs()
-                                                .containsKey(word))
+                                        index++;
+                                        if (c == 32 || index == messageLength)
                                         {
-                                            String emoteID =
-                                                    session.getEmoteCodesAndIDs().get(word);
-                                            log(emoteID);
-                                            if (Emotes.hasEmote(emoteID))
+                                            if (index == messageLength)
                                             {
-                                                messageNodes.add(new ImageView(
-                                                        Emotes.getEmote(emoteID)));
+                                                sb.append(c);
+                                            }
+
+                                            String word = sb.toString();
+                                            if (session.getEmoteCodesAndIDs()
+                                                    .containsKey(word))
+                                            {
+                                                log("Found emote");
+                                                String emoteID =
+                                                        session.getEmoteCodesAndIDs().get(word);
+                                                log(emoteID);
+                                                if (Emotes.hasEmote(emoteID))
+                                                {
+                                                    messageNodes.add(new ImageView(
+                                                            Emotes.getEmote(emoteID)));
+                                                } else
+                                                {
+                                                    Image emote = new Image(
+                                                            String.format(
+                                                                    HandleData.EMOTE_DOWNLOAD_URL,
+                                                                    emoteID),
+                                                            true
+                                                    );
+                                                    Emotes.cacheEmote(emote, emoteID);
+                                                    messageNodes.add(new ImageView(emote));
+                                                }
                                             } else
                                             {
-                                                Image emote = new Image(
-                                                        String.format(
-                                                                HandleData.EMOTE_DOWNLOAD_URL,
-                                                                emoteID),
-                                                        true
-                                                );
-                                                Emotes.cacheEmote(emote, emoteID);
-                                                messageNodes.add(new ImageView(emote));
+                                                messageNodes.add(new Label(sb.toString()));
                                             }
-                                        } else
-                                        {
-                                            messageNodes.add(new Label(sb.toString()));
+                                            sb = new StringBuilder();
+                                            continue;
                                         }
-                                        sb = new StringBuilder();
-                                        continue;
+                                        sb.append(c);
                                     }
-                                    sb.append(c);
+
+                                    FlowPane result = DataProcessor.formatMessage(null,
+                                            "Whispering " + receivingUser, null, messageNodes,
+                                            true);
+
+                                    displayMessage(result);
+
+                                } else
+                                {
+
+                                    ArrayList<Image> clientImageBadges = null;
+                                    ArrayList<Node> messageNodes = new ArrayList<>();
+                                    StringBuilder sb = new StringBuilder();
+                                    char[] rawMessage = message.toCharArray();
+
+                                    if (session.getBadgeSignatures().size() >= 1)
+                                    {
+                                        clientImageBadges = new ArrayList<>();
+
+                                        for (String badge : session.getBadgeSignatures())
+                                        {
+                                            clientImageBadges.add(Badges.getBadge(badge));
+                                        }
+                                    }
+
+                                    userList.addUser(client.getNick(), clientImageBadges);
+
+                                    int messageLength = message.length();
+                                    int index = 0;
+                                    for (char c : rawMessage)
+                                    {
+                                        index++;
+                                        if (c == 32 || index == messageLength)
+                                        {
+                                            if (index == messageLength)
+                                            {
+                                                sb.append(c);
+                                            }
+
+                                            String word = sb.toString();
+                                            if (session.getEmoteCodesAndIDs()
+                                                    .containsKey(word))
+                                            {
+                                                String emoteID =
+                                                        session.getEmoteCodesAndIDs().get(word);
+                                                log(emoteID);
+                                                if (Emotes.hasEmote(emoteID))
+                                                {
+                                                    messageNodes.add(new ImageView(
+                                                            Emotes.getEmote(emoteID)));
+                                                } else
+                                                {
+                                                    Image emote = new Image(
+                                                            String.format(
+                                                                    HandleData.EMOTE_DOWNLOAD_URL,
+                                                                    emoteID),
+                                                            true
+                                                    );
+                                                    Emotes.cacheEmote(emote, emoteID);
+                                                    messageNodes.add(new ImageView(emote));
+                                                }
+                                            } else
+                                            {
+                                                messageNodes.add(new Label(sb.toString()));
+                                            }
+                                            sb = new StringBuilder();
+                                            continue;
+                                        }
+                                        sb.append(c);
+                                    }
+
+                                    FlowPane result = DataProcessor.formatMessage(
+                                            clientImageBadges, session.getClientDisplayName(),
+                                            session.getClientColor(), messageNodes, false);
+
+                                    displayMessage(result);
                                 }
-
-                                FlowPane result = DataProcessor.formatMessage(
-                                        clientImageBadges, session.getClientDisplayName(),
-                                        session.getClientColor(), messageNodes);
-
-                                displayMessage(result);
                             }
                         }
                     } else

@@ -24,7 +24,6 @@ import java.util.ArrayList;
 
 import static UISettings.ReadOnlyUISettings.getTextFill;
 import static UISettings.ReadOnlyUISettings.getUiFont;
-import static logUtils.Logger.log;
 
 public class UserList extends VBox
 {
