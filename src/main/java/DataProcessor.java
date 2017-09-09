@@ -85,24 +85,24 @@ public class DataProcessor implements Runnable
         boolean isFirst = true, isAction = false;
         for (Node node : msgData)
         {
-            if (isFirst)
-            {
-                isFirst = false;
-
-                if (((Label) node).getText().contains("ACTION"))
-                {
-                    log("Action message detected");
-                    isAction = true;
-                    continue;
-                }
-            }
-
             if (node instanceof Label)
             {
                 String potentialLink = ((Label) node).getText();
                 String linkBegin = null;
                 if (potentialLink.length() > 9)
                     linkBegin = potentialLink.substring(0, 8);
+
+                if (isFirst)
+                {
+                    isFirst = false;
+    
+                    if (potentialLink.contains("ACTION"))
+                    {
+                        log("Action message detected");
+                        isAction = true;
+                        continue;
+                    }
+                }
 
                 if (isAction)
                 {
