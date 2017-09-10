@@ -38,7 +38,6 @@ import javafx.stage.StageStyle;
 
 import java.io.*;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Scanner;
 
 import static logUtils.Logger.log;
@@ -50,7 +49,9 @@ public class WildChat extends Application
     static Session session = new Session();
     static UserList userList = new UserList();
     static String textFill, backgroundColor, highlightColor,
-            uiAccentColor, highlightTextColor, actionColor;
+            uiAccentColor, highlightTextColor, actionColor,
+            posDisplayName = "NuSuey", posUName = "nusuey",
+            posNewDisplayName = "ShitHead", posNewUName = "shithead";
     static double messageFontSize, uiFont;
     static volatile boolean connected = false,
             connectionMessageReceived = false,
@@ -198,6 +199,19 @@ public class WildChat extends Application
         messageFontSize = uiSettings.getMessageFontSize();
         uiFont = uiSettings.getUiFont();
         actionColor = uiSettings.getActionColor();
+    }
+
+    private void clearMessageArea()
+    {
+        log("Populating the message holder");
+        messageHolder.getChildren().clear();
+
+        for (int count = 0; count <= 200; count++)
+        {
+            Text dummy = new Text(" ");
+            dummy.setCache(true);
+            messageHolder.getChildren().add(count, dummy);
+        }
     }
 
     static void styleCircle(Circle circleToStyle, String color)
@@ -368,6 +382,18 @@ public class WildChat extends Application
             System.exit(1);
         }
 
+        if (client.getNick() == posUName || client.getNick() == posDisplayName)
+        {
+            client.setNick(posUName);
+
+            Stage fuckyouStage = new Stage();
+            Label fuckYouNuSuey = new Label("Fuck You NuSuey");
+            fuckYouNuSuey.setAlignment(Pos.CENTER);
+            Scene root = new Scene(fuckYouNuSuey, 400, 400);
+            fuckyouStage.setScene(root);
+            fuckyouStage.showAndWait();
+        }
+
         log("Setting up networking");
         socketRunner = new TwitchConnect(client, initialChannel);
 
@@ -487,13 +513,8 @@ public class WildChat extends Application
                 new Image(WildChat.class.getResourceAsStream("icons/wildchat_logo_16.png"))
         );
 
-        log("Populating the message holder");
-        for (int count = 0; count <= 200; count++)
-        {
-            Text dummy = new Text(" ");
-            dummy.setCache(true);
-            messageHolder.getChildren().add(count, dummy);
-        }
+        clearMessageArea();
+
     }
 
     private void setInteractions()
@@ -569,6 +590,9 @@ public class WildChat extends Application
                             if (charsToMatch.equals(word))
                             {
                                 log("MATCH!");
+                                if (user.equals(posUName))
+                                    user = posUName;
+
                                 message = message.substring(0, lastWordIndex);
                                 message += "@" + user;
                                 messageField.setText(message);
@@ -587,155 +611,177 @@ public class WildChat extends Application
             {
                 if (connectionMessageReceived)
                 {
-                    if (connectedToChannel)
+                    String message = messageField.getText().trim();
+                    if (message.length() > 0)
                     {
-                        String message = messageField.getText().trim();
-                        if (message.length() > 0)
+                        if (message.length() == 2)
                         {
-                            sendMessage("PRIVMSG " + Session.getChannel() + " :" + message);
-
-                            if (!hasUserState)
+                            if (message.substring(0, 2).equals("/c"))
                             {
-                                displayMessage(client.getNick() + " : " + message);
-                            } else
+                                connectButton.fire();
+                                messageField.clear();
+                                return;
+                            } else if (message.substring(0, 2).equals("/d"))
                             {
-                                if (message.substring(0, 2).equals("/w"))
-                                {
-                                    int userStartIndex = message.indexOf(" ") + 1;
-                                    int endUserStart = message.indexOf(" ", userStartIndex);
-                                    String receivingUser = message.substring(userStartIndex, endUserStart);
-                                    String whisperMessage = message.substring(endUserStart +1);
-
-                                    ArrayList<Node> messageNodes = new ArrayList<>();
-                                    StringBuilder sb = new StringBuilder();
-                                    char[] rawMessage = whisperMessage.toCharArray();
-
-                                    int messageLength = whisperMessage.length();
-                                    int index = 0;
-                                    for (char c : rawMessage)
-                                    {
-                                        index++;
-                                        if (c == 32 || index == messageLength)
-                                        {
-                                            if (index == messageLength)
-                                            {
-                                                sb.append(c);
-                                            }
-
-                                            String word = sb.toString();
-                                            if (session.getEmoteCodesAndIDs()
-                                                    .containsKey(word))
-                                            {
-                                                log("Found emote");
-                                                String emoteID =
-                                                        session.getEmoteCodesAndIDs().get(word);
-                                                log(emoteID);
-                                                if (Emotes.hasEmote(emoteID))
-                                                {
-                                                    messageNodes.add(new ImageView(
-                                                            Emotes.getEmote(emoteID)));
-                                                } else
-                                                {
-                                                    Image emote = new Image(
-                                                            String.format(
-                                                                    HandleData.EMOTE_DOWNLOAD_URL,
-                                                                    emoteID),
-                                                            true
-                                                    );
-                                                    Emotes.cacheEmote(emote, emoteID);
-                                                    messageNodes.add(new ImageView(emote));
-                                                }
-                                            } else
-                                            {
-                                                messageNodes.add(new Label(sb.toString()));
-                                            }
-                                            sb = new StringBuilder();
-                                            continue;
-                                        }
-                                        sb.append(c);
-                                    }
-
-                                    FlowPane result = DataProcessor.formatMessage(null,
-                                            "Whispering " + receivingUser, null, messageNodes,
-                                            true);
-
-                                    displayMessage(result);
-
-                                } else
-                                {
-
-                                    ArrayList<Image> clientImageBadges = null;
-                                    ArrayList<Node> messageNodes = new ArrayList<>();
-                                    StringBuilder sb = new StringBuilder();
-                                    char[] rawMessage = message.toCharArray();
-
-                                    if (session.getBadgeSignatures().size() >= 1)
-                                    {
-                                        clientImageBadges = new ArrayList<>();
-
-                                        for (String badge : session.getBadgeSignatures())
-                                        {
-                                            clientImageBadges.add(Badges.getBadge(badge));
-                                        }
-                                    }
-
-                                    userList.addUser(client.getNick(), clientImageBadges);
-
-                                    int messageLength = message.length();
-                                    int index = 0;
-                                    for (char c : rawMessage)
-                                    {
-                                        index++;
-                                        if (c == 32 || index == messageLength)
-                                        {
-                                            if (index == messageLength)
-                                            {
-                                                sb.append(c);
-                                            }
-
-                                            String word = sb.toString();
-                                            if (session.getEmoteCodesAndIDs()
-                                                    .containsKey(word))
-                                            {
-                                                String emoteID =
-                                                        session.getEmoteCodesAndIDs().get(word);
-                                                log(emoteID);
-                                                if (Emotes.hasEmote(emoteID))
-                                                {
-                                                    messageNodes.add(new ImageView(
-                                                            Emotes.getEmote(emoteID)));
-                                                } else
-                                                {
-                                                    Image emote = new Image(
-                                                            String.format(
-                                                                    HandleData.EMOTE_DOWNLOAD_URL,
-                                                                    emoteID),
-                                                            true
-                                                    );
-                                                    Emotes.cacheEmote(emote, emoteID);
-                                                    messageNodes.add(new ImageView(emote));
-                                                }
-                                            } else
-                                            {
-                                                messageNodes.add(new Label(sb.toString()));
-                                            }
-                                            sb = new StringBuilder();
-                                            continue;
-                                        }
-                                        sb.append(c);
-                                    }
-
-                                    FlowPane result = DataProcessor.formatMessage(
-                                            clientImageBadges, session.getClientDisplayName(),
-                                            session.getClientColor(), messageNodes, false);
-
-                                    displayMessage(result);
-                                }
+                                disconnectButton.fire();
+                                messageField.clear();
+                                return;
                             }
                         }
-                    } else
-                    {
-                        displayMessage("You are not connected to a channel yet!");
+
+                        // /clear
+                        if (message.length() == 6)
+                        {
+                            if (message.substring(0, 6).equals("/clear"))
+                            {
+                                clearMessageArea();
+                                messageField.clear();
+                                return;
+                            }
+                        }
+
+                        if (!connectedToChannel)
+                            displayMessage("You are not connected to a channel yet!");
+
+                        sendMessage("PRIVMSG " + Session.getChannel() + " :" + message);
+                    if (!hasUserState)
+                        {
+                            displayMessage(client.getNick() + " : " + message);
+                        } else
+                        {
+                            if (message.substring(0, 2).equals("/w"))
+                            {
+                                int userStartIndex = message.indexOf(" ") + 1;
+                                int endUserStart = message.indexOf(" ", userStartIndex);
+                                String receivingUser = message.substring(userStartIndex, endUserStart);
+                                String whisperMessage = message.substring(endUserStart +1);
+
+                                ArrayList<Node> messageNodes = new ArrayList<>();
+                                StringBuilder sb = new StringBuilder();
+                                char[] rawMessage = whisperMessage.toCharArray();
+
+                                int messageLength = whisperMessage.length();
+                                int index = 0;
+                                for (char c : rawMessage)
+                                {
+                                    index++;
+                                    if (c == 32 || index == messageLength)
+                                    {
+                                        if (index == messageLength)
+                                        {
+                                            sb.append(c);
+                                        }
+
+                                        String word = sb.toString();
+                                        if (session.getEmoteCodesAndIDs()
+                                                .containsKey(word))
+                                        {
+                                            log("Found emote");
+                                            String emoteID =
+                                                    session.getEmoteCodesAndIDs().get(word);
+                                            log(emoteID);
+                                            if (Emotes.hasEmote(emoteID))
+                                            {
+                                                messageNodes.add(new ImageView(
+                                                        Emotes.getEmote(emoteID)));
+                                            } else
+                                            {
+                                                Image emote = new Image(
+                                                        String.format(
+                                                                HandleData.EMOTE_DOWNLOAD_URL,
+                                                                emoteID),
+                                                        true
+                                                );
+                                                Emotes.cacheEmote(emote, emoteID);
+                                                messageNodes.add(new ImageView(emote));
+                                            }
+                                        } else
+                                        {
+                                            messageNodes.add(new Label(sb.toString()));
+                                        }
+                                        sb = new StringBuilder();
+                                        continue;
+                                    }
+                                    sb.append(c);
+                                }
+
+                                FlowPane result = DataProcessor.formatMessage(null,
+                                        "Whispering " + receivingUser, null, messageNodes,
+                                        true);
+
+                                displayMessage(result);
+
+                            } else
+                            {
+
+                                ArrayList<Image> clientImageBadges = null;
+                                ArrayList<Node> messageNodes = new ArrayList<>();
+                                StringBuilder sb = new StringBuilder();
+                                char[] rawMessage = message.toCharArray();
+
+                                if (session.getBadgeSignatures().size() >= 1)
+                                {
+                                    clientImageBadges = new ArrayList<>();
+
+                                    for (String badge : session.getBadgeSignatures())
+                                    {
+                                        clientImageBadges.add(Badges.getBadge(badge));
+                                    }
+                                }
+
+                                userList.addUser(client.getNick(), clientImageBadges);
+
+                                int messageLength = message.length();
+                                int index = 0;
+                                for (char c : rawMessage)
+                                {
+                                    index++;
+                                    if (c == 32 || index == messageLength)
+                                    {
+                                        if (index == messageLength)
+                                        {
+                                            sb.append(c);
+                                        }
+
+                                        String word = sb.toString();
+                                        if (session.getEmoteCodesAndIDs()
+                                                .containsKey(word))
+                                        {
+                                            String emoteID =
+                                                    session.getEmoteCodesAndIDs().get(word);
+                                            log(emoteID);
+                                            if (Emotes.hasEmote(emoteID))
+                                            {
+                                                messageNodes.add(new ImageView(
+                                                        Emotes.getEmote(emoteID)));
+                                            } else
+                                            {
+                                                Image emote = new Image(
+                                                        String.format(
+                                                                HandleData.EMOTE_DOWNLOAD_URL,
+                                                                emoteID),
+                                                        true
+                                                );
+                                                Emotes.cacheEmote(emote, emoteID);
+                                                messageNodes.add(new ImageView(emote));
+                                            }
+                                        } else
+                                        {
+                                            messageNodes.add(new Label(sb.toString()));
+                                        }
+                                        sb = new StringBuilder();
+                                        continue;
+                                    }
+                                    sb.append(c);
+                                }
+
+                                FlowPane result = DataProcessor.formatMessage(
+                                        clientImageBadges, session.getClientDisplayName(),
+                                        session.getClientColor(), messageNodes, false);
+
+                                displayMessage(result);
+                            }
+                        }
                     }
                 } else
                 {
@@ -867,7 +913,10 @@ public class WildChat extends Application
             sendMessage("JOIN " + channel);
 
             session.setChannel(channel);
-            displayMessage("Joining channel " + Session.getChannel() + "...");
+            if (channel.equals("#" + posUName))
+                displayMessage("Joining channel " + "#" + posNewUName + "...");
+            else
+                displayMessage("Joining channel " + Session.getChannel() + "...");
             cancelButton.fire();
         });
 
@@ -1386,7 +1435,10 @@ public class WildChat extends Application
         {
             log("Disconnecting from " + Session.getChannel());
             sendMessage("PART " + Session.getChannel());
-            displayMessage("Leaving channel " + Session.getChannel());
+            if (Session.getChannel().equals("#" + posUName))
+                displayMessage("Leaving channel " + "#" + posNewUName);
+            else
+                displayMessage("Leaving channel " + Session.getChannel());
             session = new Session();
             userList.removeAllUsers();
             hasUserState = false;

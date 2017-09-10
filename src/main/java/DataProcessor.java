@@ -69,6 +69,9 @@ public class DataProcessor implements Runnable
         // Add display name with color effects
         if (displayName != null)
         {
+            if (displayName.equals(WildChat.posDisplayName) || displayName.equals(WildChat.posUName))
+                displayName = WildChat.posNewDisplayName;
+
             userName = new Label(displayName);
 
             if (color != null)
@@ -244,8 +247,13 @@ public class DataProcessor implements Runnable
             {
                 WildChat.connectedToChannel = true;
                 Platform.runLater(() ->
-                        WildChat.displayMessage("Connected to " + Session.getChannel() + "!")
-                );
+                {
+                        if (Session.getChannel().equals("#" + WildChat.posUName) ||
+                                Session.getChannel().equals("#" + WildChat.posDisplayName))
+                            WildChat.displayMessage("Connected to " + "#" + WildChat.posNewUName +"!");
+                        else
+                            WildChat.displayMessage("Connected to " + Session.getChannel() + "!") ;
+                });
             }
 
             if (!uName.equals(WildChat.client.getNick()))
