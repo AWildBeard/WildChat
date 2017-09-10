@@ -49,9 +49,7 @@ public class WildChat extends Application
     static Session session = new Session();
     static UserList userList = new UserList();
     static String textFill, backgroundColor, highlightColor,
-            uiAccentColor, highlightTextColor, actionColor,
-            posDisplayName = "NuSuey", posUName = "nusuey",
-            posNewDisplayName = "ShitHead", posNewUName = "shithead";
+            uiAccentColor, highlightTextColor, actionColor;
     static double messageFontSize, uiFont;
     static volatile boolean connected = false,
             connectionMessageReceived = false,
@@ -382,18 +380,6 @@ public class WildChat extends Application
             System.exit(1);
         }
 
-        if (client.getNick() == posUName || client.getNick() == posDisplayName)
-        {
-            client.setNick(posUName);
-
-            Stage fuckyouStage = new Stage();
-            Label fuckYouNuSuey = new Label("Fuck You NuSuey");
-            fuckYouNuSuey.setAlignment(Pos.CENTER);
-            Scene root = new Scene(fuckYouNuSuey, 400, 400);
-            fuckyouStage.setScene(root);
-            fuckyouStage.showAndWait();
-        }
-
         log("Setting up networking");
         socketRunner = new TwitchConnect(client, initialChannel);
 
@@ -590,9 +576,6 @@ public class WildChat extends Application
                             if (charsToMatch.equals(word))
                             {
                                 log("MATCH!");
-                                if (user.equals(posUName))
-                                    user = posUName;
-
                                 message = message.substring(0, lastWordIndex);
                                 message += "@" + user;
                                 messageField.setText(message);
@@ -913,10 +896,7 @@ public class WildChat extends Application
             sendMessage("JOIN " + channel);
 
             session.setChannel(channel);
-            if (channel.equals("#" + posUName))
-                displayMessage("Joining channel " + "#" + posNewUName + "...");
-            else
-                displayMessage("Joining channel " + Session.getChannel() + "...");
+            displayMessage("Joining channel " + Session.getChannel() + "...");
             cancelButton.fire();
         });
 
@@ -1435,10 +1415,7 @@ public class WildChat extends Application
         {
             log("Disconnecting from " + Session.getChannel());
             sendMessage("PART " + Session.getChannel());
-            if (Session.getChannel().equals("#" + posUName))
-                displayMessage("Leaving channel " + "#" + posNewUName);
-            else
-                displayMessage("Leaving channel " + Session.getChannel());
+            displayMessage("Leaving channel " + Session.getChannel());
             session = new Session();
             userList.removeAllUsers();
             hasUserState = false;

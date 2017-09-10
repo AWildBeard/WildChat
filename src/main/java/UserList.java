@@ -54,9 +54,6 @@ public class UserList extends VBox
         if (indexOfUsersHBox(userName) != null)
             return;
 
-        if (userName.equals(WildChat.posUName) || userName.equals(WildChat.posDisplayName))
-            userName = WildChat.posNewUName;
-
         HBox userContainter = new HBox();
         Label userNameLabel = new Label(userName);
         userNameLabel.setStyle("-fx-font-size: " + getUiFont() + ";" +
