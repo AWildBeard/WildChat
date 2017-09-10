@@ -95,6 +95,7 @@ public class DataProcessor implements Runnable
                 if (potentialLink.length() > 9)
                     linkBegin = potentialLink.substring(0, 8);
 
+
                 if (isFirst)
                 {
                     isFirst = false;
@@ -115,7 +116,12 @@ public class DataProcessor implements Runnable
                 {
                     node.setStyle("-fx-font-size: " + getMessageFontSize() + ";" +
                             "-fx-text-fill: " + getWhisperTextColor() + ";");
+                } else
+                {
+                    node.setStyle("-fx-font-size: " + getMessageFontSize() + ";" +
+                            "-fx-text-fill: " + getTextFill());
                 }
+
 
                 if (linkBegin != null && (linkBegin.contains("http://") || linkBegin.contains("https://")))
                 {
