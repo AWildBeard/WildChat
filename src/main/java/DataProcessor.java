@@ -252,6 +252,7 @@ public class DataProcessor implements Runnable
                 Platform.runLater(() ->
                 {
                     WildChat.displayMessage("Connected to " + Session.getChannel() + "!") ;
+                    WildChat.title.set("WildChat - " + WildChat.VERSION + " - " + Session.getChannel());
                 });
             }
 

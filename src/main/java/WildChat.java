@@ -14,6 +14,7 @@
 
 import UISettings.UISettings;
 import javafx.application.Application;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.geometry.HPos;
@@ -69,7 +70,7 @@ public class WildChat extends Application
                              : BasicIO.getEnvVars("HOME") + "/",
             credentialFile = dotDirLocation + filePrefix + credentials,
             uiSettingsFile = dotDirLocation + filePrefix + uiSettingsFileName;
-    private final String VERSION;
+    static String VERSION;
     private Scene root;
     private Thread baseConnectionThread = null;
     static UISettings uiSettings = new UISettings();
@@ -88,6 +89,7 @@ public class WildChat extends Application
             row2Constraints = new RowConstraints(),
             row3Constraints = new RowConstraints();
     private String initialChannel = null;
+    static SimpleStringProperty title = new SimpleStringProperty();
 
     public WildChat()
     {
@@ -390,7 +392,8 @@ public class WildChat extends Application
         initUI();
 
         WildChat.primaryStage.setScene(root);
-        WildChat.primaryStage.setTitle("WildChat - " + VERSION);
+        title.setValue("WildChat - " + VERSION);
+        WildChat.primaryStage.titleProperty().bind(title);
 
         // CTRL+Q exit application
         WildChat.primaryStage.getScene().getAccelerators().put(
@@ -597,34 +600,39 @@ public class WildChat extends Application
                     String message = messageField.getText().trim();
                     if (message.length() > 0)
                     {
-                        if (message.length() == 2)
-                        {
-                            if (message.substring(0, 2).equals("/c"))
+                        if (message.startsWith("/")) {
+                            if (message.length() >= 2)
                             {
-                                connectButton.fire();
-                                messageField.clear();
-                                return;
-                            } else if (message.substring(0, 2).equals("/d"))
-                            {
-                                disconnectButton.fire();
-                                messageField.clear();
-                                return;
-                            }
-                        }
+                                // test for /clear before /c
+                                if (message.length() >= 6) {
+                                    if (message.substring(0, 6).equals("/clear"))
+                                    {
+                                        clearMessageArea();
+                                        messageField.clear();
+                                        return;
+                                    }
+                                }
 
-                        // /clear
-                        if (message.length() == 6)
-                        {
-                            if (message.substring(0, 6).equals("/clear"))
-                            {
-                                clearMessageArea();
-                                messageField.clear();
-                                return;
+                                if (message.substring(0, 2).equals("/c"))
+                                {
+                                    connectButton.fire();
+                                    messageField.clear();
+                                    return;
+                                } else if (message.substring(0, 2).equals("/d"))
+                                {
+                                    disconnectButton.fire();
+                                    messageField.clear();
+                                    return;
+                                }
                             }
                         }
 
                         if (!connectedToChannel)
+                        {
                             displayMessage("You are not connected to a channel yet!");
+                            messageField.clear();
+                            return;
+                        }
 
                         sendMessage("PRIVMSG " + Session.getChannel() + " :" + message);
                     if (!hasUserState)
@@ -632,68 +640,71 @@ public class WildChat extends Application
                             displayMessage(client.getNick() + " : " + message);
                         } else
                         {
-                            if (message.substring(0, 2).equals("/w"))
+                            if (message.length() >= 2)
                             {
-                                int userStartIndex = message.indexOf(" ") + 1;
-                                int endUserStart = message.indexOf(" ", userStartIndex);
-                                String receivingUser = message.substring(userStartIndex, endUserStart);
-                                String whisperMessage = message.substring(endUserStart +1);
-
-                                ArrayList<Node> messageNodes = new ArrayList<>();
-                                StringBuilder sb = new StringBuilder();
-                                char[] rawMessage = whisperMessage.toCharArray();
-
-                                int messageLength = whisperMessage.length();
-                                int index = 0;
-                                for (char c : rawMessage)
+                                if (message.substring(0, 2).equals("/w"))
                                 {
-                                    index++;
-                                    if (c == 32 || index == messageLength)
-                                    {
-                                        if (index == messageLength)
-                                        {
-                                            sb.append(c);
-                                        }
+                                    int userStartIndex = message.indexOf(" ") + 1;
+                                    int endUserStart = message.indexOf(" ", userStartIndex);
+                                    String receivingUser = message.substring(userStartIndex, endUserStart);
+                                    String whisperMessage = message.substring(endUserStart + 1);
 
-                                        String word = sb.toString();
-                                        if (session.getEmoteCodesAndIDs()
-                                                .containsKey(word))
+                                    ArrayList<Node> messageNodes = new ArrayList<>();
+                                    StringBuilder sb = new StringBuilder();
+                                    char[] rawMessage = whisperMessage.toCharArray();
+
+                                    int messageLength = whisperMessage.length();
+                                    int index = 0;
+                                    for (char c : rawMessage)
+                                    {
+                                        index++;
+                                        if (c == 32 || index == messageLength)
                                         {
-                                            log("Found emote");
-                                            String emoteID =
-                                                    session.getEmoteCodesAndIDs().get(word);
-                                            log(emoteID);
-                                            if (Emotes.hasEmote(emoteID))
+                                            if (index == messageLength)
                                             {
-                                                messageNodes.add(new ImageView(
-                                                        Emotes.getEmote(emoteID)));
+                                                sb.append(c);
+                                            }
+
+                                            String word = sb.toString();
+                                            if (session.getEmoteCodesAndIDs()
+                                                    .containsKey(word))
+                                            {
+                                                log("Found emote");
+                                                String emoteID =
+                                                        session.getEmoteCodesAndIDs().get(word);
+                                                log(emoteID);
+                                                if (Emotes.hasEmote(emoteID))
+                                                {
+                                                    messageNodes.add(new ImageView(
+                                                            Emotes.getEmote(emoteID)));
+                                                } else
+                                                {
+                                                    Image emote = new Image(
+                                                            String.format(
+                                                                    HandleData.EMOTE_DOWNLOAD_URL,
+                                                                    emoteID),
+                                                            true
+                                                    );
+                                                    Emotes.cacheEmote(emote, emoteID);
+                                                    messageNodes.add(new ImageView(emote));
+                                                }
                                             } else
                                             {
-                                                Image emote = new Image(
-                                                        String.format(
-                                                                HandleData.EMOTE_DOWNLOAD_URL,
-                                                                emoteID),
-                                                        true
-                                                );
-                                                Emotes.cacheEmote(emote, emoteID);
-                                                messageNodes.add(new ImageView(emote));
+                                                messageNodes.add(new Label(sb.toString()));
                                             }
-                                        } else
-                                        {
-                                            messageNodes.add(new Label(sb.toString()));
+                                            sb = new StringBuilder();
+                                            continue;
                                         }
-                                        sb = new StringBuilder();
-                                        continue;
+                                        sb.append(c);
                                     }
-                                    sb.append(c);
+
+                                    FlowPane result = DataProcessor.formatMessage(null,
+                                            "Whispering " + receivingUser, null, messageNodes,
+                                            true);
+
+                                    displayMessage(result);
+
                                 }
-
-                                FlowPane result = DataProcessor.formatMessage(null,
-                                        "Whispering " + receivingUser, null, messageNodes,
-                                        true);
-
-                                displayMessage(result);
-
                             } else
                             {
 
@@ -1416,6 +1427,7 @@ public class WildChat extends Application
             log("Disconnecting from " + Session.getChannel());
             sendMessage("PART " + Session.getChannel());
             displayMessage("Leaving channel " + Session.getChannel());
+            WildChat.title.setValue("WildChat - " + VERSION);
             session = new Session();
             userList.removeAllUsers();
             hasUserState = false;
