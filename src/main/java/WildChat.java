@@ -176,7 +176,7 @@ public class WildChat extends Application
 
         if (FileUtil.hasData(uiSettingsFile))
         {
-            log("UISettings.UISettings file has data");
+            log("UISettings file has data");
             File uiSettingFile = new File(uiSettingsFile);
             try
             {
@@ -640,71 +640,74 @@ public class WildChat extends Application
                             displayMessage(client.getNick() + " : " + message);
                         } else
                         {
+                            boolean isWhisp = false;
+
                             if (message.length() >= 2)
                             {
-                                if (message.substring(0, 2).equals("/w"))
+                                if (message.substring(0, 2).equals("/w")) 
+                                    isWhisp = true;
+                            }
+                            if (isWhisp)
+                            {
+                                int userStartIndex = message.indexOf(" ") + 1;
+                                int endUserStart = message.indexOf(" ", userStartIndex);
+                                String receivingUser = message.substring(userStartIndex, endUserStart);
+                                String whisperMessage = message.substring(endUserStart + 1);
+
+                                ArrayList<Node> messageNodes = new ArrayList<>();
+                                StringBuilder sb = new StringBuilder();
+                                char[] rawMessage = whisperMessage.toCharArray();
+
+                                int messageLength = whisperMessage.length();
+                                int index = 0;
+                                for (char c : rawMessage)
                                 {
-                                    int userStartIndex = message.indexOf(" ") + 1;
-                                    int endUserStart = message.indexOf(" ", userStartIndex);
-                                    String receivingUser = message.substring(userStartIndex, endUserStart);
-                                    String whisperMessage = message.substring(endUserStart + 1);
-
-                                    ArrayList<Node> messageNodes = new ArrayList<>();
-                                    StringBuilder sb = new StringBuilder();
-                                    char[] rawMessage = whisperMessage.toCharArray();
-
-                                    int messageLength = whisperMessage.length();
-                                    int index = 0;
-                                    for (char c : rawMessage)
+                                    index++;
+                                    if (c == 32 || index == messageLength)
                                     {
-                                        index++;
-                                        if (c == 32 || index == messageLength)
+                                        if (index == messageLength)
                                         {
-                                            if (index == messageLength)
-                                            {
-                                                sb.append(c);
-                                            }
+                                            sb.append(c);
+                                        }
 
-                                            String word = sb.toString();
-                                            if (session.getEmoteCodesAndIDs()
-                                                    .containsKey(word))
+                                        String word = sb.toString();
+                                        if (session.getEmoteCodesAndIDs()
+                                                .containsKey(word))
+                                        {
+                                            log("Found emote");
+                                            String emoteID =
+                                                    session.getEmoteCodesAndIDs().get(word);
+                                            log(emoteID);
+                                            if (Emotes.hasEmote(emoteID))
                                             {
-                                                log("Found emote");
-                                                String emoteID =
-                                                        session.getEmoteCodesAndIDs().get(word);
-                                                log(emoteID);
-                                                if (Emotes.hasEmote(emoteID))
-                                                {
-                                                    messageNodes.add(new ImageView(
-                                                            Emotes.getEmote(emoteID)));
-                                                } else
-                                                {
-                                                    Image emote = new Image(
-                                                            String.format(
-                                                                    HandleData.EMOTE_DOWNLOAD_URL,
-                                                                    emoteID),
-                                                            true
-                                                    );
-                                                    Emotes.cacheEmote(emote, emoteID);
-                                                    messageNodes.add(new ImageView(emote));
-                                                }
+                                                messageNodes.add(new ImageView(
+                                                        Emotes.getEmote(emoteID)));
                                             } else
                                             {
-                                                messageNodes.add(new Label(sb.toString()));
+                                                Image emote = new Image(
+                                                        String.format(
+                                                                HandleData.EMOTE_DOWNLOAD_URL,
+                                                                emoteID),
+                                                        true
+                                                );
+                                                Emotes.cacheEmote(emote, emoteID);
+                                                messageNodes.add(new ImageView(emote));
                                             }
-                                            sb = new StringBuilder();
-                                            continue;
+                                        } else
+                                        {
+                                            messageNodes.add(new Label(sb.toString()));
                                         }
-                                        sb.append(c);
+                                        sb = new StringBuilder();
+                                        continue;
                                     }
-
-                                    FlowPane result = DataProcessor.formatMessage(null,
-                                            "Whispering " + receivingUser, null, messageNodes,
-                                            true);
-
-                                    displayMessage(result);
-
+                                    sb.append(c);
                                 }
+
+                                FlowPane result = DataProcessor.formatMessage(null,
+                                        "Whispering " + receivingUser, null, messageNodes,
+                                        true);
+
+                                displayMessage(result);
                             } else
                             {
 
@@ -781,6 +784,7 @@ public class WildChat extends Application
                 {
                     displayMessage("Not connected to twitch.tv yet!");
                 }
+                log("reached the end :(");
                 messageField.clear();
             }
         });
