@@ -31,7 +31,7 @@ dependencies {
 }
 
 // Define the main class for the application
-mainClassName = 'TwitchChatter'
+mainClassName = 'WildChat'
 
 jar {
     manifest {
